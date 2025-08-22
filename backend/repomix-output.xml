@@ -1,0 +1,1237 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+.prettierignore
+.prettierrc
+environments/local.env
+eslint.config.mjs
+nest-cli.json
+ormconfig.ts
+package.json
+README.md
+src/app.module.ts
+src/common/decorators/api-file.decorator.ts
+src/common/decorators/public.decorator.ts
+src/common/http/db-query-failed.filter.ts
+src/common/http/global-exception.filter.ts
+src/config/config-static.ts
+src/config/config.type.ts
+src/config/configuration.ts
+src/database/entities/models/create-update.model.ts
+src/database/entities/task.entity.ts
+src/main.ts
+src/modules/logger/logger.module.ts
+src/modules/logger/logger.service.ts
+src/modules/postgres/postgres.module.ts
+src/modules/repository/repository.module.ts
+src/modules/repository/services/task.repository.ts
+src/modules/tasks/dto/req/create-task.req.dto.ts
+src/modules/tasks/dto/req/task-list.query.dto.ts
+src/modules/tasks/dto/req/update-task.req.dto.ts
+src/modules/tasks/dto/res/task-list.res.dto.ts
+src/modules/tasks/inerfaces/task.interfaces.ts
+src/modules/tasks/services/tasks.service.ts
+src/modules/tasks/tasks.controller.ts
+src/modules/tasks/tasks.module.ts
+tsconfig.build.json
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".prettierignore">
+node_modules
+dist
+package-lock.json
+</file>
+
+<file path="environments/local.env">
+APP_PORT=5000
+APP_HOST=localhost
+APP_URL=http://localhost:3000
+
+POSTGRES_PORT=5433
+POSTGRES_HOST=localhost
+
+POSTGRES_USER=user
+POSTGRES_PASSWORD=userpass
+POSTGRES_DATABASE=to-do
+
+SENTRY_DSN="https://67f4b4abce51565651459607feb2f111@o4507401648406528.ingest.de.sentry.io/4509287459389520"
+SENTRY_ENV=local
+SENTRY_DEBUG=false
+</file>
+
+<file path="ormconfig.ts">
+import * as path from 'node:path';
+
+import * as dotenv from 'dotenv';
+import { DataSource } from 'typeorm';
+import getter from './src/config/configuration';
+
+dotenv.config({ path: './environments/local.env' });
+
+const databaseConfig = getter().postgres;
+
+console.log(databaseConfig);
+
+export default new DataSource({
+  type: 'postgres',
+  host: databaseConfig.host,
+  port: databaseConfig.port,
+  username: databaseConfig.user,
+  password: databaseConfig.password,
+  database: databaseConfig.dbName,
+  entities: [path.join(process.cwd(), 'src', 'database', 'entities', '*.entity.ts')],
+  migrations: [path.join(process.cwd(), 'src', 'database', 'migrations', '*.ts')],
+  synchronize: false,
+  dropSchema: false,
+});
+</file>
+
+<file path="src/common/decorators/api-file.decorator.ts">
+import { applyDecorators } from '@nestjs/common';
+import { ApiBody } from '@nestjs/swagger';
+
+export const ApiFile = (fileName: string, isArray = true, isRequired = true): MethodDecorator => {
+  return applyDecorators(
+    ApiBody({
+      schema: {
+        type: 'object',
+        required: isRequired ? [fileName] : [],
+        properties: {
+          [fileName]: isArray
+            ? {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  format: 'binary',
+                },
+              }
+            : {
+                type: 'string',
+                format: 'binary',
+              },
+        },
+      },
+    }),
+  );
+};
+</file>
+
+<file path="src/common/decorators/public.decorator.ts">
+import { SetMetadata } from '@nestjs/common';
+
+export const IS_PUBLIC_KEY = 'isPublic';
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+</file>
+
+<file path="src/common/http/db-query-failed.filter.ts">
+import { HttpStatus } from '@nestjs/common';
+import { QueryFailedError } from 'typeorm';
+
+export class DbQueryFailedFilter {
+  static filter(exception: QueryFailedError) {
+    let status = HttpStatus.UNPROCESSABLE_ENTITY;
+    let message = (exception as QueryFailedError).message;
+    const code = (exception as any).code;
+
+    if ((exception as any).code === '23505') {
+      const detail = (exception as any).detail;
+      const match = detail?.match(/Key \((.+?)\)=\((.+?)\) already exists\./);
+      if (match) {
+        const key = match[1];
+        const value = match[2];
+
+        status = HttpStatus.CONFLICT;
+        message = `${key} '${value}' already exists`;
+      }
+    }
+
+    return { status, message, code };
+  }
+}
+</file>
+
+<file path="src/common/http/global-exception.filter.ts">
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
+import * as Sentry from '@sentry/node';
+import { Request, Response } from 'express';
+import { QueryFailedError } from 'typeorm';
+
+import { LoggerService } from '../../modules/logger/logger.service';
+import { DbQueryFailedFilter } from './db-query-failed.filter';
+
+@Catch()
+export class GlobalExceptionFilter implements ExceptionFilter {
+  constructor(private readonly logger: LoggerService) {}
+
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+    let status: number;
+    let message: string;
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const responseObj = exception.getResponse();
+      if (
+        status === 409 &&
+        typeof responseObj === 'object' &&
+        'message' in responseObj &&
+        (responseObj as any).message === 'Email already exists'
+      ) {
+        response.status(status).json(responseObj);
+        return;
+      }
+      message = typeof responseObj === 'string' ? responseObj : (responseObj as any).message || exception.message;
+    } else if (exception instanceof QueryFailedError) {
+      const error = DbQueryFailedFilter.filter(exception);
+      status = error.status;
+      message = error.message;
+    } else {
+      status = 500;
+      message = 'Internal server error';
+    }
+
+    this.logger.error(
+      `Error: ${exception instanceof Error ? exception.message : 'Unknown error'}`,
+      exception instanceof Error ? exception.stack : '',
+    );
+    Sentry.captureException(exception);
+
+    response.status(status).json({
+      statusCode: status,
+      message,
+      error: exception instanceof HttpException ? exception.name : 'Error',
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    });
+  }
+}
+</file>
+
+<file path="src/config/config-static.ts">
+import * as process from 'node:process';
+
+import * as dotenv from 'dotenv';
+
+import { Config } from './config.type';
+import configuration from './configuration';
+
+class ConfigStatic {
+  public get(): Config {
+    return <Config>configuration();
+  }
+}
+
+const env = process.env.ENVIROMENT || 'local';
+dotenv.config({ path: `environments/${env}.env` });
+const ConfigStaticService = new ConfigStatic();
+export { ConfigStaticService };
+</file>
+
+<file path="src/config/config.type.ts">
+export type Config = {
+  app: AppConfig;
+  postgres: PostgresConfig;
+  sentry: SentryConfig;
+};
+
+export type AppConfig = {
+  port: number;
+  host: string;
+  appUrl: string;
+};
+
+export type PostgresConfig = {
+  port: number;
+  host: string;
+  user: string;
+  password: string;
+  dbName: string;
+};
+
+export type SentryConfig = {
+  dsn: string;
+  env: string;
+  debug: boolean;
+};
+</file>
+
+<file path="src/config/configuration.ts">
+import * as process from 'node:process';
+import {Config} from "./config.type";
+
+export default (): Config => ({
+  app: {
+    port: Number(process.env.APP_PORT),
+    host: String(process.env.APP_HOST),
+    appUrl: String(process.env.APP_URL)
+  },
+  postgres: {
+    port: Number(process.env.POSTGRES_PORT),
+    host: String(process.env.POSTGRES_HOST),
+    user: String(process.env.POSTGRES_USER),
+    password: String(process.env.POSTGRES_PASSWORD),
+    dbName: String(process.env.POSTGRES_DATABASE),
+  },
+  sentry: {
+    dsn: String(process.env.SENTRY_DSN ),
+    env: String(process.env.SENTRY_ENV),
+    debug: process.env.SENTRY_DEBUG === 'true',
+  },
+});
+</file>
+
+<file path="src/database/entities/models/create-update.model.ts">
+import { CreateDateColumn, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+
+export class CreateUpdateModel {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
+}
+</file>
+
+<file path="src/database/entities/task.entity.ts">
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {CreateUpdateModel} from "./models/create-update.model";
+
+@Entity()
+export class TaskEntity extends CreateUpdateModel{
+
+  @Column()
+  title: string;
+
+  @Column({ default: false })
+  done: boolean;
+
+  @Column({ type: 'int', default: 1 })
+  priority: number;
+}
+</file>
+
+<file path="src/modules/logger/logger.module.ts">
+import { Global, Module } from '@nestjs/common';
+
+import { LoggerService } from './logger.service';
+
+@Global()
+@Module({
+  imports: [],
+  providers: [LoggerService],
+  exports: [LoggerService],
+})
+export class LoggerModule {}
+</file>
+
+<file path="src/modules/logger/logger.service.ts">
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as Sentry from '@sentry/node';
+
+import { Config, SentryConfig } from '../../config/config.type';
+
+@Injectable()
+export class LoggerService {
+  private readonly logger = new Logger();
+
+  constructor(private readonly configService: ConfigService<Config>) {
+    const sentryConfig = this.configService.get<SentryConfig>('sentry');
+
+    if (sentryConfig?.dsn) {
+      Sentry.init({
+        dsn: sentryConfig.dsn,
+        environment: sentryConfig.env,
+        debug: sentryConfig.debug,
+      });
+    }
+  }
+
+  public log(message: string): void {
+    this.logger.log(message);
+    Sentry.captureMessage(message, 'log');
+  }
+
+  public info(message: string): void {
+    this.logger.log(message);
+    Sentry.captureMessage(message, 'info');
+  }
+
+  public warn(message: string): void {
+    this.logger.warn(message);
+    Sentry.captureMessage(message, 'warning');
+  }
+
+  public error(error: any, trace: string = ''): void {
+    const finalTrace = trace || (error && error.stack ? error.stack : '');
+    this.logger.error(error, finalTrace);
+    Sentry.captureException(error, { level: 'error' });
+  }
+}
+</file>
+
+<file path="src/modules/postgres/postgres.module.ts">
+import * as path from 'node:path';
+
+import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import {Config, PostgresConfig} from "../../config/config.type";
+
+
+@Module({
+  imports: [
+    TypeOrmModule.forRootAsync({
+      useFactory: async (configService: ConfigService<Config>) => {
+        const config = configService.get<PostgresConfig>('postgres');
+
+        return {
+          type: 'postgres',
+          host: config?.host,
+          port: config?.port,
+          username: config?.user,
+          password: config?.password,
+          database: config?.dbName,
+          entities: [path.join(process.cwd(), 'dist', 'src', 'database', 'entities', '*.entity.js')],
+          migrations: [path.join(process.cwd(), 'dist', 'src', 'database', 'migrations', '*.js')],
+
+          migrationsRun: true,
+          synchronize: false,
+          logging: true,
+        };
+      },
+      inject: [ConfigService],
+    }),
+  ],
+})
+export class PostgresModule {}
+</file>
+
+<file path="src/modules/repository/repository.module.ts">
+import { Global, Module } from '@nestjs/common';
+import {TaskRepository} from "./services/task.repository";
+import {PostgresModule} from "../postgres/postgres.module";
+
+
+const repositories = [TaskRepository];
+@Global()
+@Module({
+  imports: [PostgresModule],
+  controllers: [],
+  providers: repositories,
+  exports: repositories,
+})
+export class RepositoryModule {}
+</file>
+
+<file path="src/modules/repository/services/task.repository.ts">
+import { Injectable } from '@nestjs/common';
+import {DataSource, Repository} from 'typeorm';
+import {TaskEntity} from "../../../database/entities/task.entity";
+import {TaskListQueryDto} from "../../tasks/dto/req/task-list.query.dto";
+
+@Injectable()
+export class TaskRepository extends Repository<TaskEntity> {
+  constructor(private readonly dataSource: DataSource) {
+    super(TaskEntity, dataSource.createEntityManager());
+  }
+
+  public async getAllTasks(query: TaskListQueryDto): Promise<[TaskEntity[], number]> {
+    const { search, status, sort, page = 1, limit = 10 } = query;
+
+    const queryBuilder = this.createQueryBuilder('task');
+
+    if (search) {
+      queryBuilder.andWhere('task.title ILIKE :search', { search: `%${search}%` });
+    }
+
+    if (status === 'done') {
+      queryBuilder.andWhere('task.done = true');
+    } else if (status === 'undone') {
+      queryBuilder.andWhere('task.done = false');
+    }
+
+    if (sort) {
+      queryBuilder.orderBy('task.priority', sort.toUpperCase() as 'ASC' | 'DESC');
+    }
+
+    const offset = (page - 1) * limit;
+    queryBuilder.offset(offset).limit(limit);
+
+    return queryBuilder.getManyAndCount();
+  }
+}
+</file>
+
+<file path="src/modules/tasks/dto/req/create-task.req.dto.ts">
+import { IsNotEmpty, IsInt, Min, Max } from 'class-validator';
+
+export class CreateTaskReqDto {
+  @IsNotEmpty()
+  title: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  priority: number;
+}
+</file>
+
+<file path="src/modules/tasks/dto/req/task-list.query.dto.ts">
+import { IsOptional, IsNumberString, IsIn } from 'class-validator';
+
+export class TaskListQueryDto {
+  @IsOptional()
+  @IsNumberString()
+  page?: number;
+
+  @IsOptional()
+  @IsNumberString()
+  limit?: number;
+
+  @IsOptional()
+  search?: string;
+
+  @IsOptional()
+  @IsIn(['all', 'done', 'undone'])
+  status?: string;
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sort?: 'asc' | 'desc';
+}
+</file>
+
+<file path="src/modules/tasks/dto/req/update-task.req.dto.ts">
+export class UpdateTaskReqDto {
+  title?: string;
+  done?: boolean;
+  priority?: number;
+}
+</file>
+
+<file path="src/modules/tasks/dto/res/task-list.res.dto.ts">
+import {TaskResDto} from "../../inerfaces/task.interfaces";
+
+export class TaskListResDto {
+  tasks: TaskResDto[];
+  total: number;
+  page: number;
+  limit: number;
+}
+</file>
+
+<file path="src/modules/tasks/inerfaces/task.interfaces.ts">
+export interface Task {
+  id: string;
+  title: string;
+  done: boolean;
+  priority: number;
+}
+
+export interface TaskResDto extends Task {
+  createdAt: Date;
+  updatedAt: Date;
+}
+</file>
+
+<file path="src/modules/tasks/services/tasks.service.ts">
+import {Injectable, NotFoundException} from '@nestjs/common';
+import {TaskListQueryDto} from "../dto/req/task-list.query.dto";
+import {TaskListResDto} from "../dto/res/task-list.res.dto";
+import {TaskRepository} from "../../repository/services/task.repository";
+import {CreateTaskReqDto} from "../dto/req/create-task.req.dto";
+import {TaskResDto} from "../inerfaces/task.interfaces";
+import {UpdateTaskReqDto} from "../dto/req/update-task.req.dto";
+
+@Injectable()
+export class TasksService {
+  constructor(private readonly taskRepository: TaskRepository) {}
+
+  async getAllTasks(query: TaskListQueryDto): Promise<TaskListResDto> {
+    const [tasks, total] = await this.taskRepository.getAllTasks(query);
+    const { page = 1, limit = 10 } = query;
+
+    return {
+      tasks: tasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        done: task.done,
+        priority: task.priority,
+        createdAt: task.created_at,
+        updatedAt: task.updated_at,
+      })),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async createTask(createTaskDto: CreateTaskReqDto): Promise<TaskResDto> {
+    const task = this.taskRepository.create({
+      title: createTaskDto.title,
+      priority: createTaskDto.priority,
+      done: false,
+    });
+    const savedTask = await this.taskRepository.save(task);
+    return {
+      id: savedTask.id,
+      title: savedTask.title,
+      done: savedTask.done,
+      priority: savedTask.priority,
+      createdAt: savedTask.created_at,
+      updatedAt: savedTask.updated_at,
+    };
+  }
+
+  async updateTask(id: string, updateTaskDto: UpdateTaskReqDto): Promise<TaskResDto> {
+    const task = await this.taskRepository.findOneBy({ id });
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    Object.assign(task, updateTaskDto);
+    const updatedTask = await this.taskRepository.save(task);
+    return {
+      id: updatedTask.id,
+      title: updatedTask.title,
+      done: updatedTask.done,
+      priority: updatedTask.priority,
+      createdAt: updatedTask.created_at,
+      updatedAt: updatedTask.updated_at,
+    };
+  }
+
+  async deleteTask(id: string): Promise<void> {
+    const result = await this.taskRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException('Task not found');
+    }
+  }
+}
+</file>
+
+<file path="src/modules/tasks/tasks.controller.ts">
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { TasksService } from './services/tasks.service';
+import { CreateTaskReqDto } from './dto/req/create-task.req.dto';
+import { UpdateTaskReqDto } from './dto/req/update-task.req.dto';
+import { TaskListQueryDto } from './dto/req/task-list.query.dto';
+import { TaskListResDto } from './dto/res/task-list.res.dto';
+
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {TaskResDto} from "./inerfaces/task.interfaces";
+
+@ApiTags('Tasks')
+@Controller('tasks')
+export class TasksController {
+  constructor(private readonly tasksService: TasksService) {}
+
+  @Get()
+  @ApiOkResponse({
+    description: 'Get all tasks',
+    type: TaskListResDto,
+  })
+  public async getAllTasks(@Query() query: TaskListQueryDto): Promise<TaskListResDto> {
+    return this.tasksService.getAllTasks(query);
+  }
+
+  @Post()
+  @ApiOkResponse({
+    description: 'Create a new task',
+  })
+  createTask(@Body() createTaskDto: CreateTaskReqDto): Promise<TaskResDto> {
+    return this.tasksService.createTask(createTaskDto);
+  }
+
+  @Put(':id')
+  @ApiOkResponse({
+    description: 'Update a task',
+  })
+  updateTask(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskReqDto): Promise<TaskResDto> {
+    return this.tasksService.updateTask(id, updateTaskDto);
+  }
+
+  @Delete(':id')
+  @ApiOkResponse({
+    description: 'Delete a task',
+  })
+  deleteTask(@Param('id') id: string): Promise<void> {
+    return this.tasksService.deleteTask(id);
+  }
+}
+</file>
+
+<file path="src/modules/tasks/tasks.module.ts">
+import { Module } from '@nestjs/common';
+import { TasksController } from './tasks.controller';
+import { TasksService } from './services/tasks.service';
+
+@Module({
+  controllers: [TasksController],
+  providers: [TasksService],
+})
+export class TasksModule {}
+</file>
+
+<file path=".gitignore">
+# compiled output
+/dist
+/node_modules
+/build
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+
+# Tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# temp directory
+.temp
+.tmp
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+</file>
+
+<file path=".prettierrc">
+{
+  "printWidth": 120,
+  "endOfLine": "auto",
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "all"
+}
+</file>
+
+<file path="eslint.config.mjs">
+import pluginJs from '@eslint/js';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+import tsParser from '@typescript-eslint/parser';
+import importPlugin from 'eslint-plugin-import';
+import prettierPlugin from 'eslint-plugin-prettier';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import globals from 'globals';
+
+export default [
+  {
+    files: ['**/*.{ts,js}'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        project: './tsconfig.json',
+        ecmaVersion: 2021,
+        sourceType: 'module',
+      },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.jest,
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+      prettier: prettierPlugin,
+      'simple-import-sort': simpleImportSort,
+      import: importPlugin,
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          vars: 'all',
+          args: 'after-used',
+          ignoreRestSiblings: true,
+          varsIgnorePattern: '^_',
+        },
+      ],
+      '@typescript-eslint/interface-name-prefix': 'off',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/return-await': ['error', 'always'],
+      'simple-import-sort/imports': 'error',
+      'import/first': 'error',
+      'import/newline-after-import': ['error', { count: 1 }],
+      'import/no-duplicates': 'error',
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+      // 'no-console': 'warn',
+      'sort-imports': [
+        'error',
+        {
+          ignoreCase: true,
+          ignoreDeclarationSort: true,
+          ignoreMemberSort: false,
+          memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
+          allowSeparatedGroups: false,
+        },
+      ],
+      'max-len': ['error', { code: 120 }],
+    },
+  },
+  {
+    files: ['**/*.ts'],
+    languageOptions: {
+      sourceType: 'commonjs',
+    },
+  },
+  pluginJs.configs.recommended,
+  {
+    ignores: [
+      'eslint.config.mjs',
+      '**/*.generated.ts',
+      '**/migrations/*.ts',
+      'dist/',
+      '.idea/',
+      '.husky/',
+      'node_modules/',
+      '.git/',
+      '*.config.js',
+      '*.xml5',
+      '*.iml',
+      '.gitignore',
+    ],
+  },
+];
+</file>
+
+<file path="nest-cli.json">
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true
+  }
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "backend",
+  "version": "0.0.1",
+  "description": "",
+  "author": "",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/main",
+    "typeorm": "typeorm-ts-node-commonjs --dataSource ormconfig.ts",
+    "typeorm:create": "typeorm-ts-node-commonjs",
+    "migration:generate": "cross-var npm run typeorm -- migration:generate ./src/database/migrations/$npm_config_name",
+    "migration:create": "cross-var npm run typeorm:create -- migration:create ./src/database/migrations/$npm_config_name",
+    "migration:run": "npm run typeorm -- migration:run",
+    "migration:revert": "npm run typeorm -- migration:revert",
+    "migration:show": "typeorm-ts-node-commonjs migration:show",
+    "migration:run:local": "cross-env NODE_ENV=local npm run migration:run",
+    "migration:run:prod": "cross-env NODE_ENV=prod npm run migration:run",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\""
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.2.0",
+    "@nestjs/typeorm": "^11.0.0",
+    "@sentry/node": "^10.5.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "dotenv": "^17.2.1",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.26"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.18.0",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.1",
+    "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.10.7",
+    "@types/supertest": "^6.0.2",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-prettier": "^5.2.2",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "globals": "^16.0.0",
+    "jest": "^30.0.0",
+    "prettier": "^3.4.2",
+    "source-map-support": "^0.5.21",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "ts-loader": "^9.5.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node"
+  }
+}
+</file>
+
+<file path="README.md">
+<p align="center">
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+</p>
+
+[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
+[circleci-url]: https://circleci.com/gh/nestjs/nest
+
+  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
+    <p align="center">
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
+<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
+<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
+<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
+<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
+  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
+    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
+  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+</p>
+  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
+  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+
+## Description
+
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+
+## Project setup
+
+```bash
+$ npm install
+```
+
+## Compile and run the project
+
+```bash
+# development
+$ npm run start
+
+# watch mode
+$ npm run start:dev
+
+# production mode
+$ npm run start:prod
+```
+
+## Run tests
+
+```bash
+# unit tests
+$ npm run test
+
+# e2e tests
+$ npm run test:e2e
+
+# test coverage
+$ npm run test:cov
+```
+
+## Deployment
+
+When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+
+If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+
+```bash
+$ npm install -g @nestjs/mau
+$ mau deploy
+```
+
+With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+
+## Resources
+
+Check out a few resources that may come in handy when working with NestJS:
+
+- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
+- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
+- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
+- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
+- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
+- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
+- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
+- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+
+## Support
+
+Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+
+## Stay in touch
+
+- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
+- Website - [https://nestjs.com](https://nestjs.com/)
+- Twitter - [@nestframework](https://twitter.com/nestframework)
+
+## License
+
+Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+</file>
+
+<file path="src/app.module.ts">
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
+
+import { GlobalExceptionFilter } from './common/http/global-exception.filter';
+import configuration from './config/configuration';
+import { LoggerModule } from './modules/logger/logger.module';
+import {RepositoryModule} from "./modules/repository/repository.module";
+import {TasksModule} from "./modules/tasks/tasks.module";
+import {PostgresModule} from "./modules/postgres/postgres.module";
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      load: [configuration],
+      isGlobal: true,
+    }),
+    // AuthModule,
+    // UsersModule,
+    // RedisModule,
+    PostgresModule,
+    TasksModule,
+    RepositoryModule,
+    LoggerModule,
+  ],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
+    },
+  ],
+})
+export class AppModule {}
+</file>
+
+<file path="src/main.ts">
+import { BadRequestException, Logger, ValidationError, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
+
+import { PostgresConfig } from './config/config.type';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  const configService = app.get(ConfigService);
+
+  const appConfig = configService.get<PostgresConfig>('app');
+
+  const config = new DocumentBuilder()
+    .setTitle('Automaze-To-Do')
+    .setDescription('Automaze-To-Do is a web application that helps users plan their time')
+    .setVersion('1.0.0')
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      in: 'header',
+    })
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+
+  SwaggerModule.setup('docs', app, document, {
+    swaggerOptions: {
+      docExpansion: 'list',
+      defaultModelsExpandDepth: 7,
+      persistAuthorization: true,
+    },
+  });
+
+  app.use(
+    '/swagger-json',
+    (req: any, res: { setHeader: (arg0: string, arg1: string) => void; send: (arg0: OpenAPIObject) => void }) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.send(document);
+    },
+  );
+
+  app.enableCors({
+    origin: '*',
+    credentials: true,
+    allowedHeaders: ['Authorization', 'Content-Type'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  });
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+      exceptionFactory: (validationErrors: ValidationError[] = []) => {
+        Logger.error('Validation failed', JSON.stringify(validationErrors));
+        return new BadRequestException(
+          validationErrors.map((error) => ({
+            property: error.property,
+            constraints: error.constraints,
+          })),
+        );
+      },
+    }),
+  );
+
+  if (!appConfig) {
+    throw new Error('App config is missing');
+  }
+  await app.listen(appConfig.port, () => {
+    Logger.log(`Server running on http://${appConfig.host}:${appConfig.port}`);
+    Logger.log(`Swagger running on http://${appConfig.host}:${appConfig.port}/docs`);
+  });
+}
+void bootstrap();
+</file>
+
+<file path="tsconfig.build.json">
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+}
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolvePackageJsonExports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false
+  }
+}
+</file>
+
+</files>
