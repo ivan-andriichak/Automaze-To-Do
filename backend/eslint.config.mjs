@@ -47,19 +47,17 @@ export default [
       'import/first': 'error',
       'import/newline-after-import': ['error', { count: 1 }],
       'import/no-duplicates': 'error',
-      'prettier/prettier': ['error', { endOfLine: 'auto' }],
-      // 'no-console': 'warn',
-      'sort-imports': [
+      'prettier/prettier': [
         'error',
         {
-          ignoreCase: true,
-          ignoreDeclarationSort: true,
-          ignoreMemberSort: false,
-          memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
-          allowSeparatedGroups: false,
+          printWidth: 120,
+          endOfLine: 'auto',
+          singleQuote: true,
+          tabWidth: 2,
+          trailingComma: 'all',
         },
       ],
-      'max-len': ['error', { code: 120 }],
+      // 'no-console': 'warn',
     },
   },
   {
