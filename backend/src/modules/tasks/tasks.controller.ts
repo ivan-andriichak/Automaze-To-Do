@@ -2,10 +2,10 @@ import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Q
 import {ApiBody, ApiOkResponse, ApiParam, ApiResponse, ApiTags} from '@nestjs/swagger';
 
 import {CreateTaskReqDto} from './dto/req/create-task.req.dto';
-import {TaskListQueryDto} from './dto/req/task-list.query.dto';
+import {TaskListReqDto} from './dto/req/task-list.req.dto';
 import {UpdateTaskReqDto} from './dto/req/update-task.req.dto';
+import {TaskResDto} from './dto/res/task.res.dto';
 import {TaskListResDto} from './dto/res/task-list.res.dto';
-import {TaskResDto} from './inerfaces/task.interfaces';
 import {TasksService} from './services/tasks.service';
 
 @ApiTags('Tasks')
@@ -18,7 +18,7 @@ export class TasksController {
     description: 'A list of tasks with pagination information.',
     type: TaskListResDto,
   })
-  public async getAllTasks(@Query() query: TaskListQueryDto): Promise<TaskListResDto> {
+  public async getAllTasks(@Query() query: TaskListReqDto): Promise<TaskListResDto> {
     return await this.tasksService.getAllTasks(query);
   }
 

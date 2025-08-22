@@ -2,10 +2,13 @@ import {Column, Entity} from 'typeorm';
 
 import {CreateUpdateModel} from './models/create-update.model';
 
-@Entity()
+@Entity('tasks')
 export class TaskEntity extends CreateUpdateModel {
   @Column()
   title: string;
+
+  @Column({ type: 'text', nullable: false })
+  description: string | null;
 
   @Column({ default: false })
   done: boolean;

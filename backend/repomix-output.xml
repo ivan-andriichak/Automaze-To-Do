@@ -59,6 +59,7 @@ src/config/config.type.ts
 src/config/configuration.ts
 src/database/entities/models/create-update.model.ts
 src/database/entities/task.entity.ts
+src/database/migrations/1755792081729-$npm_config_name.ts
 src/main.ts
 src/modules/logger/logger.module.ts
 src/modules/logger/logger.service.ts
@@ -66,9 +67,10 @@ src/modules/postgres/postgres.module.ts
 src/modules/repository/repository.module.ts
 src/modules/repository/services/task.repository.ts
 src/modules/tasks/dto/req/create-task.req.dto.ts
-src/modules/tasks/dto/req/task-list.query.dto.ts
+src/modules/tasks/dto/req/task-list.req.dto.ts
 src/modules/tasks/dto/req/update-task.req.dto.ts
 src/modules/tasks/dto/res/task-list.res.dto.ts
+src/modules/tasks/enums/task-status.enum.ts
 src/modules/tasks/inerfaces/task.interfaces.ts
 src/modules/tasks/services/tasks.service.ts
 src/modules/tasks/tasks.controller.ts
@@ -79,648 +81,6 @@ tsconfig.json
 
 <files>
 This section contains the contents of the repository's files.
-
-<file path=".prettierignore">
-node_modules
-dist
-package-lock.json
-</file>
-
-<file path="environments/local.env">
-APP_PORT=5000
-APP_HOST=localhost
-APP_URL=http://localhost:3000
-
-POSTGRES_PORT=5433
-POSTGRES_HOST=localhost
-
-POSTGRES_USER=user
-POSTGRES_PASSWORD=userpass
-POSTGRES_DATABASE=to-do
-
-SENTRY_DSN="https://67f4b4abce51565651459607feb2f111@o4507401648406528.ingest.de.sentry.io/4509287459389520"
-SENTRY_ENV=local
-SENTRY_DEBUG=false
-</file>
-
-<file path="ormconfig.ts">
-import * as path from 'node:path';
-
-import * as dotenv from 'dotenv';
-import { DataSource } from 'typeorm';
-import getter from './src/config/configuration';
-
-dotenv.config({ path: './environments/local.env' });
-
-const databaseConfig = getter().postgres;
-
-console.log(databaseConfig);
-
-export default new DataSource({
-  type: 'postgres',
-  host: databaseConfig.host,
-  port: databaseConfig.port,
-  username: databaseConfig.user,
-  password: databaseConfig.password,
-  database: databaseConfig.dbName,
-  entities: [path.join(process.cwd(), 'src', 'database', 'entities', '*.entity.ts')],
-  migrations: [path.join(process.cwd(), 'src', 'database', 'migrations', '*.ts')],
-  synchronize: false,
-  dropSchema: false,
-});
-</file>
-
-<file path="src/common/decorators/api-file.decorator.ts">
-import { applyDecorators } from '@nestjs/common';
-import { ApiBody } from '@nestjs/swagger';
-
-export const ApiFile = (fileName: string, isArray = true, isRequired = true): MethodDecorator => {
-  return applyDecorators(
-    ApiBody({
-      schema: {
-        type: 'object',
-        required: isRequired ? [fileName] : [],
-        properties: {
-          [fileName]: isArray
-            ? {
-                type: 'array',
-                items: {
-                  type: 'string',
-                  format: 'binary',
-                },
-              }
-            : {
-                type: 'string',
-                format: 'binary',
-              },
-        },
-      },
-    }),
-  );
-};
-</file>
-
-<file path="src/common/decorators/public.decorator.ts">
-import { SetMetadata } from '@nestjs/common';
-
-export const IS_PUBLIC_KEY = 'isPublic';
-export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
-</file>
-
-<file path="src/common/http/db-query-failed.filter.ts">
-import { HttpStatus } from '@nestjs/common';
-import { QueryFailedError } from 'typeorm';
-
-export class DbQueryFailedFilter {
-  static filter(exception: QueryFailedError) {
-    let status = HttpStatus.UNPROCESSABLE_ENTITY;
-    let message = (exception as QueryFailedError).message;
-    const code = (exception as any).code;
-
-    if ((exception as any).code === '23505') {
-      const detail = (exception as any).detail;
-      const match = detail?.match(/Key \((.+?)\)=\((.+?)\) already exists\./);
-      if (match) {
-        const key = match[1];
-        const value = match[2];
-
-        status = HttpStatus.CONFLICT;
-        message = `${key} '${value}' already exists`;
-      }
-    }
-
-    return { status, message, code };
-  }
-}
-</file>
-
-<file path="src/common/http/global-exception.filter.ts">
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
-import * as Sentry from '@sentry/node';
-import { Request, Response } from 'express';
-import { QueryFailedError } from 'typeorm';
-
-import { LoggerService } from '../../modules/logger/logger.service';
-import { DbQueryFailedFilter } from './db-query-failed.filter';
-
-@Catch()
-export class GlobalExceptionFilter implements ExceptionFilter {
-  constructor(private readonly logger: LoggerService) {}
-
-  catch(exception: unknown, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
-    let status: number;
-    let message: string;
-
-    if (exception instanceof HttpException) {
-      status = exception.getStatus();
-      const responseObj = exception.getResponse();
-      if (
-        status === 409 &&
-        typeof responseObj === 'object' &&
-        'message' in responseObj &&
-        (responseObj as any).message === 'Email already exists'
-      ) {
-        response.status(status).json(responseObj);
-        return;
-      }
-      message = typeof responseObj === 'string' ? responseObj : (responseObj as any).message || exception.message;
-    } else if (exception instanceof QueryFailedError) {
-      const error = DbQueryFailedFilter.filter(exception);
-      status = error.status;
-      message = error.message;
-    } else {
-      status = 500;
-      message = 'Internal server error';
-    }
-
-    this.logger.error(
-      `Error: ${exception instanceof Error ? exception.message : 'Unknown error'}`,
-      exception instanceof Error ? exception.stack : '',
-    );
-    Sentry.captureException(exception);
-
-    response.status(status).json({
-      statusCode: status,
-      message,
-      error: exception instanceof HttpException ? exception.name : 'Error',
-      timestamp: new Date().toISOString(),
-      path: request.url,
-    });
-  }
-}
-</file>
-
-<file path="src/config/config-static.ts">
-import * as process from 'node:process';
-
-import * as dotenv from 'dotenv';
-
-import { Config } from './config.type';
-import configuration from './configuration';
-
-class ConfigStatic {
-  public get(): Config {
-    return <Config>configuration();
-  }
-}
-
-const env = process.env.ENVIROMENT || 'local';
-dotenv.config({ path: `environments/${env}.env` });
-const ConfigStaticService = new ConfigStatic();
-export { ConfigStaticService };
-</file>
-
-<file path="src/config/config.type.ts">
-export type Config = {
-  app: AppConfig;
-  postgres: PostgresConfig;
-  sentry: SentryConfig;
-};
-
-export type AppConfig = {
-  port: number;
-  host: string;
-  appUrl: string;
-};
-
-export type PostgresConfig = {
-  port: number;
-  host: string;
-  user: string;
-  password: string;
-  dbName: string;
-};
-
-export type SentryConfig = {
-  dsn: string;
-  env: string;
-  debug: boolean;
-};
-</file>
-
-<file path="src/config/configuration.ts">
-import * as process from 'node:process';
-import {Config} from "./config.type";
-
-export default (): Config => ({
-  app: {
-    port: Number(process.env.APP_PORT),
-    host: String(process.env.APP_HOST),
-    appUrl: String(process.env.APP_URL)
-  },
-  postgres: {
-    port: Number(process.env.POSTGRES_PORT),
-    host: String(process.env.POSTGRES_HOST),
-    user: String(process.env.POSTGRES_USER),
-    password: String(process.env.POSTGRES_PASSWORD),
-    dbName: String(process.env.POSTGRES_DATABASE),
-  },
-  sentry: {
-    dsn: String(process.env.SENTRY_DSN ),
-    env: String(process.env.SENTRY_ENV),
-    debug: process.env.SENTRY_DEBUG === 'true',
-  },
-});
-</file>
-
-<file path="src/database/entities/models/create-update.model.ts">
-import { CreateDateColumn, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-
-export class CreateUpdateModel {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @CreateDateColumn()
-  created_at: Date;
-
-  @UpdateDateColumn()
-  updated_at: Date;
-}
-</file>
-
-<file path="src/database/entities/task.entity.ts">
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-import {CreateUpdateModel} from "./models/create-update.model";
-
-@Entity()
-export class TaskEntity extends CreateUpdateModel{
-
-  @Column()
-  title: string;
-
-  @Column({ default: false })
-  done: boolean;
-
-  @Column({ type: 'int', default: 1 })
-  priority: number;
-}
-</file>
-
-<file path="src/modules/logger/logger.module.ts">
-import { Global, Module } from '@nestjs/common';
-
-import { LoggerService } from './logger.service';
-
-@Global()
-@Module({
-  imports: [],
-  providers: [LoggerService],
-  exports: [LoggerService],
-})
-export class LoggerModule {}
-</file>
-
-<file path="src/modules/logger/logger.service.ts">
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as Sentry from '@sentry/node';
-
-import { Config, SentryConfig } from '../../config/config.type';
-
-@Injectable()
-export class LoggerService {
-  private readonly logger = new Logger();
-
-  constructor(private readonly configService: ConfigService<Config>) {
-    const sentryConfig = this.configService.get<SentryConfig>('sentry');
-
-    if (sentryConfig?.dsn) {
-      Sentry.init({
-        dsn: sentryConfig.dsn,
-        environment: sentryConfig.env,
-        debug: sentryConfig.debug,
-      });
-    }
-  }
-
-  public log(message: string): void {
-    this.logger.log(message);
-    Sentry.captureMessage(message, 'log');
-  }
-
-  public info(message: string): void {
-    this.logger.log(message);
-    Sentry.captureMessage(message, 'info');
-  }
-
-  public warn(message: string): void {
-    this.logger.warn(message);
-    Sentry.captureMessage(message, 'warning');
-  }
-
-  public error(error: any, trace: string = ''): void {
-    const finalTrace = trace || (error && error.stack ? error.stack : '');
-    this.logger.error(error, finalTrace);
-    Sentry.captureException(error, { level: 'error' });
-  }
-}
-</file>
-
-<file path="src/modules/postgres/postgres.module.ts">
-import * as path from 'node:path';
-
-import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import {Config, PostgresConfig} from "../../config/config.type";
-
-
-@Module({
-  imports: [
-    TypeOrmModule.forRootAsync({
-      useFactory: async (configService: ConfigService<Config>) => {
-        const config = configService.get<PostgresConfig>('postgres');
-
-        return {
-          type: 'postgres',
-          host: config?.host,
-          port: config?.port,
-          username: config?.user,
-          password: config?.password,
-          database: config?.dbName,
-          entities: [path.join(process.cwd(), 'dist', 'src', 'database', 'entities', '*.entity.js')],
-          migrations: [path.join(process.cwd(), 'dist', 'src', 'database', 'migrations', '*.js')],
-
-          migrationsRun: true,
-          synchronize: false,
-          logging: true,
-        };
-      },
-      inject: [ConfigService],
-    }),
-  ],
-})
-export class PostgresModule {}
-</file>
-
-<file path="src/modules/repository/repository.module.ts">
-import { Global, Module } from '@nestjs/common';
-import {TaskRepository} from "./services/task.repository";
-import {PostgresModule} from "../postgres/postgres.module";
-
-
-const repositories = [TaskRepository];
-@Global()
-@Module({
-  imports: [PostgresModule],
-  controllers: [],
-  providers: repositories,
-  exports: repositories,
-})
-export class RepositoryModule {}
-</file>
-
-<file path="src/modules/repository/services/task.repository.ts">
-import { Injectable } from '@nestjs/common';
-import {DataSource, Repository} from 'typeorm';
-import {TaskEntity} from "../../../database/entities/task.entity";
-import {TaskListQueryDto} from "../../tasks/dto/req/task-list.query.dto";
-
-@Injectable()
-export class TaskRepository extends Repository<TaskEntity> {
-  constructor(private readonly dataSource: DataSource) {
-    super(TaskEntity, dataSource.createEntityManager());
-  }
-
-  public async getAllTasks(query: TaskListQueryDto): Promise<[TaskEntity[], number]> {
-    const { search, status, sort, page = 1, limit = 10 } = query;
-
-    const queryBuilder = this.createQueryBuilder('task');
-
-    if (search) {
-      queryBuilder.andWhere('task.title ILIKE :search', { search: `%${search}%` });
-    }
-
-    if (status === 'done') {
-      queryBuilder.andWhere('task.done = true');
-    } else if (status === 'undone') {
-      queryBuilder.andWhere('task.done = false');
-    }
-
-    if (sort) {
-      queryBuilder.orderBy('task.priority', sort.toUpperCase() as 'ASC' | 'DESC');
-    }
-
-    const offset = (page - 1) * limit;
-    queryBuilder.offset(offset).limit(limit);
-
-    return queryBuilder.getManyAndCount();
-  }
-}
-</file>
-
-<file path="src/modules/tasks/dto/req/create-task.req.dto.ts">
-import { IsNotEmpty, IsInt, Min, Max } from 'class-validator';
-
-export class CreateTaskReqDto {
-  @IsNotEmpty()
-  title: string;
-
-  @IsInt()
-  @Min(1)
-  @Max(10)
-  priority: number;
-}
-</file>
-
-<file path="src/modules/tasks/dto/req/task-list.query.dto.ts">
-import { IsOptional, IsNumberString, IsIn } from 'class-validator';
-
-export class TaskListQueryDto {
-  @IsOptional()
-  @IsNumberString()
-  page?: number;
-
-  @IsOptional()
-  @IsNumberString()
-  limit?: number;
-
-  @IsOptional()
-  search?: string;
-
-  @IsOptional()
-  @IsIn(['all', 'done', 'undone'])
-  status?: string;
-
-  @IsOptional()
-  @IsIn(['asc', 'desc'])
-  sort?: 'asc' | 'desc';
-}
-</file>
-
-<file path="src/modules/tasks/dto/req/update-task.req.dto.ts">
-export class UpdateTaskReqDto {
-  title?: string;
-  done?: boolean;
-  priority?: number;
-}
-</file>
-
-<file path="src/modules/tasks/dto/res/task-list.res.dto.ts">
-import {TaskResDto} from "../../inerfaces/task.interfaces";
-
-export class TaskListResDto {
-  tasks: TaskResDto[];
-  total: number;
-  page: number;
-  limit: number;
-}
-</file>
-
-<file path="src/modules/tasks/inerfaces/task.interfaces.ts">
-export interface Task {
-  id: string;
-  title: string;
-  done: boolean;
-  priority: number;
-}
-
-export interface TaskResDto extends Task {
-  createdAt: Date;
-  updatedAt: Date;
-}
-</file>
-
-<file path="src/modules/tasks/services/tasks.service.ts">
-import {Injectable, NotFoundException} from '@nestjs/common';
-import {TaskListQueryDto} from "../dto/req/task-list.query.dto";
-import {TaskListResDto} from "../dto/res/task-list.res.dto";
-import {TaskRepository} from "../../repository/services/task.repository";
-import {CreateTaskReqDto} from "../dto/req/create-task.req.dto";
-import {TaskResDto} from "../inerfaces/task.interfaces";
-import {UpdateTaskReqDto} from "../dto/req/update-task.req.dto";
-
-@Injectable()
-export class TasksService {
-  constructor(private readonly taskRepository: TaskRepository) {}
-
-  async getAllTasks(query: TaskListQueryDto): Promise<TaskListResDto> {
-    const [tasks, total] = await this.taskRepository.getAllTasks(query);
-    const { page = 1, limit = 10 } = query;
-
-    return {
-      tasks: tasks.map((task) => ({
-        id: task.id,
-        title: task.title,
-        done: task.done,
-        priority: task.priority,
-        createdAt: task.created_at,
-        updatedAt: task.updated_at,
-      })),
-      total,
-      page,
-      limit,
-    };
-  }
-
-  async createTask(createTaskDto: CreateTaskReqDto): Promise<TaskResDto> {
-    const task = this.taskRepository.create({
-      title: createTaskDto.title,
-      priority: createTaskDto.priority,
-      done: false,
-    });
-    const savedTask = await this.taskRepository.save(task);
-    return {
-      id: savedTask.id,
-      title: savedTask.title,
-      done: savedTask.done,
-      priority: savedTask.priority,
-      createdAt: savedTask.created_at,
-      updatedAt: savedTask.updated_at,
-    };
-  }
-
-  async updateTask(id: string, updateTaskDto: UpdateTaskReqDto): Promise<TaskResDto> {
-    const task = await this.taskRepository.findOneBy({ id });
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-    Object.assign(task, updateTaskDto);
-    const updatedTask = await this.taskRepository.save(task);
-    return {
-      id: updatedTask.id,
-      title: updatedTask.title,
-      done: updatedTask.done,
-      priority: updatedTask.priority,
-      createdAt: updatedTask.created_at,
-      updatedAt: updatedTask.updated_at,
-    };
-  }
-
-  async deleteTask(id: string): Promise<void> {
-    const result = await this.taskRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException('Task not found');
-    }
-  }
-}
-</file>
-
-<file path="src/modules/tasks/tasks.controller.ts">
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { TasksService } from './services/tasks.service';
-import { CreateTaskReqDto } from './dto/req/create-task.req.dto';
-import { UpdateTaskReqDto } from './dto/req/update-task.req.dto';
-import { TaskListQueryDto } from './dto/req/task-list.query.dto';
-import { TaskListResDto } from './dto/res/task-list.res.dto';
-
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import {TaskResDto} from "./inerfaces/task.interfaces";
-
-@ApiTags('Tasks')
-@Controller('tasks')
-export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
-
-  @Get()
-  @ApiOkResponse({
-    description: 'Get all tasks',
-    type: TaskListResDto,
-  })
-  public async getAllTasks(@Query() query: TaskListQueryDto): Promise<TaskListResDto> {
-    return this.tasksService.getAllTasks(query);
-  }
-
-  @Post()
-  @ApiOkResponse({
-    description: 'Create a new task',
-  })
-  createTask(@Body() createTaskDto: CreateTaskReqDto): Promise<TaskResDto> {
-    return this.tasksService.createTask(createTaskDto);
-  }
-
-  @Put(':id')
-  @ApiOkResponse({
-    description: 'Update a task',
-  })
-  updateTask(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskReqDto): Promise<TaskResDto> {
-    return this.tasksService.updateTask(id, updateTaskDto);
-  }
-
-  @Delete(':id')
-  @ApiOkResponse({
-    description: 'Delete a task',
-  })
-  deleteTask(@Param('id') id: string): Promise<void> {
-    return this.tasksService.deleteTask(id);
-  }
-}
-</file>
-
-<file path="src/modules/tasks/tasks.module.ts">
-import { Module } from '@nestjs/common';
-import { TasksController } from './tasks.controller';
-import { TasksService } from './services/tasks.service';
-
-@Module({
-  controllers: [TasksController],
-  providers: [TasksService],
-})
-export class TasksModule {}
-</file>
 
 <file path=".gitignore">
 # compiled output
@@ -745,7 +105,7 @@ lerna-debug.log*
 /.nyc_output
 
 # IDEs and editors
-/.idea
+#/.idea
 .project
 .classpath
 .c9/
@@ -781,6 +141,12 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 </file>
 
+<file path=".prettierignore">
+node_modules
+dist
+package-lock.json
+</file>
+
 <file path=".prettierrc">
 {
   "printWidth": 120,
@@ -789,6 +155,24 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
   "tabWidth": 2,
   "trailingComma": "all"
 }
+</file>
+
+<file path="environments/local.env">
+APP_PORT=5000
+APP_HOST=localhost
+APP_URL=http://localhost:3000
+
+POSTGRES_PORT=5433
+POSTGRES_HOST=localhost
+
+POSTGRES_OWNER=postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=userpass
+POSTGRES_DATABASE=to-do
+
+SENTRY_DSN="https://67f4b4abce51565651459607feb2f111@o4507401648406528.ingest.de.sentry.io/4509287459389520"
+SENTRY_ENV=local
+SENTRY_DEBUG=false
 </file>
 
 <file path="eslint.config.mjs">
@@ -893,6 +277,45 @@ export default [
 }
 </file>
 
+<file path="ormconfig.ts">
+import * as path from 'node:path';
+
+import * as dotenv from 'dotenv';
+import {DataSource} from 'typeorm';
+
+import getter from './src/config/configuration';
+
+dotenv.config({ path: './environments/local.env' });
+
+const databaseConfig = getter().postgres;
+
+console.log('ormconfig.ts Config:', {
+  host: databaseConfig.host,
+  port: databaseConfig.port,
+  username: databaseConfig.user,
+  password: databaseConfig.password,
+  database: databaseConfig.dbName,
+});
+
+if (!databaseConfig.host || !databaseConfig.user || !databaseConfig.password || !databaseConfig.dbName) {
+  throw new Error('Missing PostgreSQL configuration in ormconfig.ts');
+}
+
+export default new DataSource({
+  type: 'postgres',
+  host: databaseConfig.host,
+  port: databaseConfig.port,
+  username: databaseConfig.user,
+  password: databaseConfig.password,
+  database: databaseConfig.dbName,
+  entities: [path.join(process.cwd(), 'src', 'database', 'entities', '*.entity.ts')],
+  migrations: [path.join(process.cwd(), 'src', 'database', 'migrations', '*.ts')],
+  synchronize: false,
+  dropSchema: false,
+  logging: true,
+});
+</file>
+
 <file path="package.json">
 {
   "name": "backend",
@@ -908,7 +331,7 @@ export default [
     "start:prod": "node dist/main",
     "typeorm": "typeorm-ts-node-commonjs --dataSource ormconfig.ts",
     "typeorm:create": "typeorm-ts-node-commonjs",
-    "migration:generate": "cross-var npm run typeorm -- migration:generate ./src/database/migrations/$npm_config_name",
+    "migration:generate": " npm run typeorm -- migration:generate ./src/database/migrations/$npm_config_name",
     "migration:create": "cross-var npm run typeorm:create -- migration:create ./src/database/migrations/$npm_config_name",
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert",
@@ -1090,19 +513,17 @@ import { APP_FILTER } from '@nestjs/core';
 import { GlobalExceptionFilter } from './common/http/global-exception.filter';
 import configuration from './config/configuration';
 import { LoggerModule } from './modules/logger/logger.module';
-import {RepositoryModule} from "./modules/repository/repository.module";
-import {TasksModule} from "./modules/tasks/tasks.module";
-import {PostgresModule} from "./modules/postgres/postgres.module";
+import { PostgresModule } from './modules/postgres/postgres.module';
+import { RepositoryModule } from './modules/repository/repository.module';
+import { TasksModule } from './modules/tasks/tasks.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
+      envFilePath: 'environments/local.env',
       load: [configuration],
       isGlobal: true,
     }),
-    // AuthModule,
-    // UsersModule,
-    // RedisModule,
     PostgresModule,
     TasksModule,
     RepositoryModule,
@@ -1118,21 +539,268 @@ import {PostgresModule} from "./modules/postgres/postgres.module";
 export class AppModule {}
 </file>
 
-<file path="src/main.ts">
-import { BadRequestException, Logger, ValidationError, ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
+<file path="src/common/decorators/api-file.decorator.ts">
+import { applyDecorators } from '@nestjs/common';
+import { ApiBody } from '@nestjs/swagger';
 
-import { PostgresConfig } from './config/config.type';
-import { AppModule } from './app.module';
+export const ApiFile = (fileName: string, isArray = true, isRequired = true): MethodDecorator => {
+  return applyDecorators(
+    ApiBody({
+      schema: {
+        type: 'object',
+        required: isRequired ? [fileName] : [],
+        properties: {
+          [fileName]: isArray
+            ? {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  format: 'binary',
+                },
+              }
+            : {
+                type: 'string',
+                format: 'binary',
+              },
+        },
+      },
+    }),
+  );
+};
+</file>
+
+<file path="src/common/decorators/public.decorator.ts">
+import { SetMetadata } from '@nestjs/common';
+
+export const IS_PUBLIC_KEY = 'isPublic';
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+</file>
+
+<file path="src/common/http/db-query-failed.filter.ts">
+import { HttpStatus } from '@nestjs/common';
+import { QueryFailedError } from 'typeorm';
+
+export class DbQueryFailedFilter {
+  static filter(exception: QueryFailedError) {
+    let status = HttpStatus.UNPROCESSABLE_ENTITY;
+    let message = (exception as QueryFailedError).message;
+    const code = (exception as any).code;
+
+    if ((exception as any).code === '23505') {
+      const detail = (exception as any).detail;
+      const match = detail?.match(/Key \((.+?)\)=\((.+?)\) already exists\./);
+      if (match) {
+        const key = match[1];
+        const value = match[2];
+
+        status = HttpStatus.CONFLICT;
+        message = `${key} '${value}' already exists`;
+      }
+    }
+
+    return { status, message, code };
+  }
+}
+</file>
+
+<file path="src/common/http/global-exception.filter.ts">
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
+import * as Sentry from '@sentry/node';
+import { Request, Response } from 'express';
+import { QueryFailedError } from 'typeorm';
+
+import { LoggerService } from '../../modules/logger/logger.service';
+import { DbQueryFailedFilter } from './db-query-failed.filter';
+
+@Catch()
+export class GlobalExceptionFilter implements ExceptionFilter {
+  constructor(private readonly logger: LoggerService) {}
+
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+    let status: number;
+    let message: string;
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const responseObj = exception.getResponse();
+      if (
+        status === 409 &&
+        typeof responseObj === 'object' &&
+        'message' in responseObj &&
+        (responseObj as any).message === 'Email already exists'
+      ) {
+        response.status(status).json(responseObj);
+        return;
+      }
+      message = typeof responseObj === 'string' ? responseObj : (responseObj as any).message || exception.message;
+    } else if (exception instanceof QueryFailedError) {
+      const error = DbQueryFailedFilter.filter(exception);
+      status = error.status;
+      message = error.message;
+    } else {
+      status = 500;
+      message = 'Internal server error';
+    }
+
+    this.logger.error(
+      `Error: ${exception instanceof Error ? exception.message : 'Unknown error'}`,
+      exception instanceof Error ? exception.stack : '',
+    );
+    Sentry.captureException(exception);
+
+    response.status(status).json({
+      statusCode: status,
+      message,
+      error: exception instanceof HttpException ? exception.name : 'Error',
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    });
+  }
+}
+</file>
+
+<file path="src/config/config-static.ts">
+import * as process from 'node:process';
+
+import * as dotenv from 'dotenv';
+
+import { Config } from './config.type';
+import configuration from './configuration';
+
+class ConfigStatic {
+  public get(): Config {
+    return <Config>configuration();
+  }
+}
+
+const env = process.env.ENVIROMENT || 'local';
+dotenv.config({ path: `environments/${env}.env` });
+const ConfigStaticService = new ConfigStatic();
+export { ConfigStaticService };
+</file>
+
+<file path="src/config/config.type.ts">
+export type Config = {
+  app: AppConfig;
+  postgres: PostgresConfig;
+  sentry: SentryConfig;
+};
+
+export type AppConfig = {
+  port: number;
+  host: string;
+  appUrl: string;
+};
+
+export type PostgresConfig = {
+  port: number;
+  host: string;
+  user: string;
+  password: string;
+  dbName: string;
+};
+
+export type SentryConfig = {
+  dsn: string;
+  env: string;
+  debug: boolean;
+};
+</file>
+
+<file path="src/config/configuration.ts">
+import * as process from 'node:process';
+
+import {Config} from './config.type';
+
+export default (): Config => ({
+  app: {
+    port: Number(process.env.APP_PORT || 5000),
+    host: process.env.APP_HOST || 'localhost',
+    appUrl: process.env.APP_URL || 'http://localhost:3000',
+  },
+  postgres: {
+    port: Number(process.env.POSTGRES_PORT || 5432),
+    host: process.env.POSTGRES_HOST || 'localhost',
+    user: process.env.POSTGRES_USER || 'user',
+    password: process.env.POSTGRES_PASSWORD || 'userpass',
+    dbName: process.env.POSTGRES_DATABASE || 'to-do',
+  },
+  sentry: {
+    dsn: process.env.SENTRY_DSN || '',
+    env: process.env.SENTRY_ENV || 'local',
+    debug: process.env.SENTRY_DEBUG === 'true',
+  },
+});
+</file>
+
+<file path="src/database/entities/models/create-update.model.ts">
+import { CreateDateColumn, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+
+export class CreateUpdateModel {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
+}
+</file>
+
+<file path="src/database/entities/task.entity.ts">
+import {Column, Entity} from 'typeorm';
+
+import {CreateUpdateModel} from './models/create-update.model';
+
+@Entity()
+export class TaskEntity extends CreateUpdateModel {
+  @Column()
+  title: string;
+
+  @Column({ default: false })
+  done: boolean;
+
+  @Column({ type: 'int', default: 1 })
+  priority: number;
+}
+</file>
+
+<file path="src/database/migrations/1755792081729-$npm_config_name.ts">
+import { MigrationInterface, QueryRunner } from "typeorm";
+
+export class  $npmConfigName1755792081729 implements MigrationInterface {
+    name = ' $npmConfigName1755792081729'
+
+    public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`CREATE TABLE "task_entity" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "title" character varying NOT NULL, "done" boolean NOT NULL DEFAULT false, "priority" integer NOT NULL DEFAULT '1', CONSTRAINT "PK_0385ca690d1697cdf7ff1ed3c2f" PRIMARY KEY ("id"))`);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP TABLE "task_entity"`);
+    }
+
+}
+</file>
+
+<file path="src/main.ts">
+import {BadRequestException, Logger, ValidationError, ValidationPipe} from '@nestjs/common';
+import {ConfigService} from '@nestjs/config';
+import {NestFactory} from '@nestjs/core';
+import {DocumentBuilder, OpenAPIObject, SwaggerModule} from '@nestjs/swagger';
+
+import {AppModule} from './app.module';
+import {AppConfig} from './config/config.type';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
 
-  const appConfig = configService.get<PostgresConfig>('app');
+  const appConfig = configService.get<AppConfig>('app');
 
   const config = new DocumentBuilder()
     .setTitle('Automaze-To-Do')
@@ -1197,6 +865,451 @@ async function bootstrap() {
   });
 }
 void bootstrap();
+</file>
+
+<file path="src/modules/logger/logger.module.ts">
+import { Global, Module } from '@nestjs/common';
+
+import { LoggerService } from './logger.service';
+
+@Global()
+@Module({
+  imports: [],
+  providers: [LoggerService],
+  exports: [LoggerService],
+})
+export class LoggerModule {}
+</file>
+
+<file path="src/modules/logger/logger.service.ts">
+import {Injectable, Logger} from '@nestjs/common';
+import {ConfigService} from '@nestjs/config';
+import * as Sentry from '@sentry/node';
+
+import {Config, SentryConfig} from '../../config/config.type';
+
+@Injectable()
+export class LoggerService {
+  private readonly logger = new Logger();
+
+  constructor(private readonly configService: ConfigService<Config>) {
+    const sentryConfig = this.configService.get<SentryConfig>('sentry');
+
+    if (sentryConfig?.dsn && sentryConfig.dsn.trim() !== '') {
+      Sentry.init({
+        dsn: sentryConfig.dsn,
+        environment: sentryConfig.env,
+        debug: sentryConfig.debug,
+      });
+    } else {
+      this.logger.warn('Sentry DSN is not provided or invalid. Sentry logging disabled.');
+    }
+  }
+
+  public log(message: string): void {
+    this.logger.log(message);
+    Sentry.captureMessage(message, 'log');
+  }
+
+  public info(message: string): void {
+    this.logger.log(message);
+    Sentry.captureMessage(message, 'info');
+  }
+
+  public warn(message: string): void {
+    this.logger.warn(message);
+    Sentry.captureMessage(message, 'warning');
+  }
+
+  public error(error: any, trace: string = ''): void {
+    const finalTrace = trace || (error && error.stack ? error.stack : '');
+    this.logger.error(error, finalTrace);
+    Sentry.captureException(error, { level: 'error' });
+  }
+}
+</file>
+
+<file path="src/modules/postgres/postgres.module.ts">
+import * as path from 'node:path';
+
+import {Module} from '@nestjs/common';
+import {ConfigService} from '@nestjs/config';
+import {TypeOrmModule} from '@nestjs/typeorm';
+
+import {Config, PostgresConfig} from '../../config/config.type';
+
+@Module({
+  imports: [
+    TypeOrmModule.forRootAsync({
+      useFactory: async (configService: ConfigService<Config>) => {
+        const config = configService.get<PostgresConfig>('postgres');
+
+        return {
+          type: 'postgres',
+          host: config?.host,
+          port: config?.port,
+          username: config?.user,
+          password: config?.password,
+          database: config?.dbName,
+          entities: [path.join(process.cwd(), 'dist', 'src', 'database', 'entities', '*.entity.js')],
+          migrations: [path.join(process.cwd(), 'dist', 'src', 'database', 'migrations', '*.js')],
+
+          migrationsRun: true,
+          synchronize: false,
+          logging: true,
+        };
+      },
+      inject: [ConfigService],
+    }),
+  ],
+})
+export class PostgresModule {}
+</file>
+
+<file path="src/modules/repository/repository.module.ts">
+import {Global, Module} from '@nestjs/common';
+
+import {PostgresModule} from '../postgres/postgres.module';
+import {TaskRepository} from './services/task.repository';
+
+const repositories = [TaskRepository];
+@Global()
+@Module({
+  imports: [PostgresModule],
+  controllers: [],
+  providers: repositories,
+  exports: repositories,
+})
+export class RepositoryModule {}
+</file>
+
+<file path="src/modules/repository/services/task.repository.ts">
+import {Injectable} from '@nestjs/common';
+import {DataSource, Repository} from 'typeorm';
+
+import {TaskEntity} from '../../../database/entities/task.entity';
+import {TaskListReqDto} from '../../tasks/dto/req/task-list.query.dto';
+
+@Injectable()
+export class TaskRepository extends Repository<TaskEntity> {
+  constructor(private readonly dataSource: DataSource) {
+    super(TaskEntity, dataSource.createEntityManager());
+  }
+
+  public async getAllTasks(query: TaskListReqDto): Promise<[TaskEntity[], number]> {
+    const { search, status, sort, page = 1, limit = 10 } = query;
+
+    const queryBuilder = this.createQueryBuilder('task');
+
+    if (search) {
+      queryBuilder.andWhere('task.title ILIKE :search', { search: `%${search}%` });
+    }
+
+    if (status === 'done') {
+      queryBuilder.andWhere('task.done = true');
+    } else if (status === 'undone') {
+      queryBuilder.andWhere('task.done = false');
+    }
+
+    if (sort) {
+      queryBuilder.orderBy('task.priority', sort.toUpperCase() as 'ASC' | 'DESC');
+    }
+
+    const offset = (page - 1) * limit;
+    queryBuilder.offset(offset).limit(limit);
+
+    return await queryBuilder.getManyAndCount();
+  }
+}
+</file>
+
+<file path="src/modules/tasks/dto/req/create-task.req.dto.ts">
+import {ApiProperty} from '@nestjs/swagger';
+import {IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min} from 'class-validator';
+
+import {TaskStatus} from '../../enums/task-status.enum';
+
+export class CreateTaskReqDto {
+  @ApiProperty({
+    description: 'The title of the task',
+    example: 'buy bread',
+    required: true,
+  })
+  @IsString()
+  @IsNotEmpty()
+  title: string;
+
+  @ApiProperty({
+    description: 'A brief description of the task (optional)',
+    example: 'Buy fresh bread from the bakery',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiProperty({
+    description: 'The status of the task (e.g., all, done, undone)',
+    example: 'undone',
+    enum: TaskStatus,
+    required: true,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @IsEnum(TaskStatus)
+  status: TaskStatus;
+
+  @ApiProperty({
+    description: 'The priority of the task (integer from 1 to 10)',
+    example: 5,
+    required: true,
+  })
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  priority: number;
+}
+</file>
+
+<file path="src/modules/tasks/dto/req/task-list.req.dto.ts">
+import {ApiPropertyOptional} from '@nestjs/swagger';
+import {IsIn, IsNumberString, IsOptional} from 'class-validator';
+
+export class TaskListReqDto {
+  @ApiPropertyOptional({ description: 'Page number for pagination', type: Number, example: 1 })
+  @IsOptional()
+  @IsNumberString()
+  page?: number;
+
+  @ApiPropertyOptional({ description: 'Limit of items per page', type: Number, example: 10 })
+  @IsOptional()
+  @IsNumberString()
+  limit?: number;
+
+  @ApiPropertyOptional({ description: 'Search term for filtering tasks', type: String, example: 'meeting' })
+  @IsOptional()
+  search?: string;
+
+  @ApiPropertyOptional({ description: 'Task status filter', enum: ['all', 'done', 'undone'], example: 'all' })
+  @IsOptional()
+  @IsIn(['all', 'done', 'undone'])
+  status?: string;
+
+  @ApiPropertyOptional({ description: 'Sort order', enum: ['asc', 'desc'], example: 'asc' })
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sort?: 'asc' | 'desc';
+}
+</file>
+
+<file path="src/modules/tasks/dto/req/update-task.req.dto.ts">
+export class UpdateTaskReqDto {
+  title?: string;
+  done?: boolean;
+  priority?: number;
+}
+</file>
+
+<file path="src/modules/tasks/dto/res/task-list.res.dto.ts">
+import {ApiProperty} from '@nestjs/swagger';
+
+import {TaskResDto} from '../../inerfaces/task.interfaces';
+
+export class TaskListResDto {
+  @ApiProperty({ type: [TaskResDto], description: `List of tasks` })
+  tasks: TaskResDto[];
+
+  @ApiProperty({ type: Number, description: `Total number of tasks` })
+  total: number;
+
+  @ApiProperty({ type: Number, description: `Current page number` })
+  page: number;
+
+  @ApiProperty({ type: Number, description: `Number of tasks per page` })
+  limit: number;
+}
+</file>
+
+<file path="src/modules/tasks/enums/task-status.enum.ts">
+export enum TaskStatus {
+  All = 'all',
+  Done = 'done',
+  Undone = 'undone',
+}
+</file>
+
+<file path="src/modules/tasks/inerfaces/task.interfaces.ts">
+import {ApiProperty} from '@nestjs/swagger';
+
+export class Task {
+  @ApiProperty({ type: String, description: `Task ID` })
+  id: string;
+
+  @ApiProperty({ type: String, description: `Task title` })
+  title: string;
+
+  @ApiProperty({ type: Boolean, description: `Task completion status` })
+  done: boolean;
+
+  @ApiProperty({ type: Number, description: `Task priority (1-10)` })
+  priority: number;
+}
+
+export class TaskResDto extends Task {
+  @ApiProperty({ type: Date, description: `Creation timestamp` })
+  createdAt: Date;
+
+  @ApiProperty({ type: Date, description: `Last update timestamp` })
+  updatedAt: Date;
+}
+</file>
+
+<file path="src/modules/tasks/services/tasks.service.ts">
+import {Injectable, NotFoundException} from '@nestjs/common';
+
+import {TaskRepository} from '../../repository/services/task.repository';
+import {CreateTaskReqDto} from '../dto/req/create-task.req.dto';
+import {TaskListReqDto} from '../dto/req/task-list.query.dto';
+import {UpdateTaskReqDto} from '../dto/req/update-task.req.dto';
+import {TaskListResDto} from '../dto/res/task-list.res.dto';
+import {TaskResDto} from '../inerfaces/task.interfaces';
+
+@Injectable()
+export class TasksService {
+  constructor(private readonly taskRepository: TaskRepository) {}
+
+  async getAllTasks(query: TaskListReqDto): Promise<TaskListResDto> {
+    const { page = 1, limit = 10 } = query;
+    const [tasks, total] = await this.taskRepository.getAllTasks(query);
+
+    return {
+      tasks: tasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        done: task.done,
+        priority: task.priority,
+        createdAt: task.created_at,
+        updatedAt: task.updated_at,
+      })),
+      total,
+      page: Number(page),
+      limit: Number(limit),
+    };
+  }
+
+  async createTask(createTaskDto: CreateTaskReqDto): Promise<TaskResDto> {
+    const task = this.taskRepository.create({
+      title: createTaskDto.title,
+      priority: createTaskDto.priority,
+      done: false,
+    });
+    const savedTask = await this.taskRepository.save(task);
+    return {
+      id: savedTask.id,
+      title: savedTask.title,
+      done: savedTask.done,
+      priority: savedTask.priority,
+      createdAt: savedTask.created_at,
+      updatedAt: savedTask.updated_at,
+    };
+  }
+
+  async updateTask(id: string, updateTaskDto: UpdateTaskReqDto): Promise<TaskResDto> {
+    const task = await this.taskRepository.findOneBy({ id });
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    Object.assign(task, updateTaskDto);
+    const updatedTask = await this.taskRepository.save(task);
+    return {
+      id: updatedTask.id,
+      title: updatedTask.title,
+      done: updatedTask.done,
+      priority: updatedTask.priority,
+      createdAt: updatedTask.created_at,
+      updatedAt: updatedTask.updated_at,
+    };
+  }
+
+  async deleteTask(id: string): Promise<void> {
+    const result = await this.taskRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException('Task not found');
+    }
+  }
+}
+</file>
+
+<file path="src/modules/tasks/tasks.controller.ts">
+import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query} from '@nestjs/common';
+import {ApiBody, ApiOkResponse, ApiParam, ApiResponse, ApiTags} from '@nestjs/swagger';
+
+import {CreateTaskReqDto} from './dto/req/create-task.req.dto';
+import {TaskListReqDto} from './dto/req/task-list.query.dto';
+import {UpdateTaskReqDto} from './dto/req/update-task.req.dto';
+import {TaskListResDto} from './dto/res/task-list.res.dto';
+import {TaskResDto} from './inerfaces/task.interfaces';
+import {TasksService} from './services/tasks.service';
+
+@ApiTags('Tasks')
+@Controller('tasks')
+export class TasksController {
+  constructor(private readonly tasksService: TasksService) {}
+
+  @Get()
+  @ApiOkResponse({
+    description: 'A list of tasks with pagination information.',
+    type: TaskListResDto,
+  })
+  public async getAllTasks(@Query() query: TaskListReqDto): Promise<TaskListResDto> {
+    return await this.tasksService.getAllTasks(query);
+  }
+
+  @Post()
+  @ApiResponse({ status: HttpStatus.CREATED, description: 'The task has been successfully created.', type: TaskResDto })
+  @ApiBody({
+    description: 'Data for creating a new task.',
+    type: CreateTaskReqDto,
+  })
+  createTask(@Body() createTaskDto: CreateTaskReqDto): Promise<TaskResDto> {
+    return this.tasksService.createTask(createTaskDto);
+  }
+
+  @Put(':id')
+  @ApiOkResponse({
+    description: 'The task has been successfully updated.',
+    type: TaskResDto,
+  })
+  @ApiParam({ name: 'id', description: 'The ID of the task to update.', type: 'string' })
+  @ApiBody({
+    description: 'Data for updating the task. All fields are optional.',
+    type: UpdateTaskReqDto,
+  })
+  updateTask(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskReqDto): Promise<TaskResDto> {
+    return this.tasksService.updateTask(id, updateTaskDto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({ status: HttpStatus.NO_CONTENT, description: 'The task has been successfully deleted.' })
+  @ApiParam({ name: 'id', description: 'The ID of the task to delete.', type: 'string' })
+  async deleteTask(@Param('id') id: string): Promise<void> {
+    await this.tasksService.deleteTask(id);
+  }
+}
+</file>
+
+<file path="src/modules/tasks/tasks.module.ts">
+import {Module} from '@nestjs/common';
+
+import {TasksService} from './services/tasks.service';
+import {TasksController} from './tasks.controller';
+
+@Module({
+  controllers: [TasksController],
+  providers: [TasksService],
+})
+export class TasksModule {}
 </file>
 
 <file path="tsconfig.build.json">

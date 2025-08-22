@@ -12,6 +12,7 @@ import {TasksModule} from './modules/tasks/tasks.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
+      envFilePath: 'environments/local.env',
       load: [configuration],
       isGlobal: true,
     }),
