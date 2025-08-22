@@ -1,18 +1,19 @@
 import {Injectable, NotFoundException} from '@nestjs/common';
-import {TaskListQueryDto} from "../dto/req/task-list.query.dto";
-import {TaskListResDto} from "../dto/res/task-list.res.dto";
-import {TaskRepository} from "../../repository/services/task.repository";
-import {TaskResDto} from "../inerfaces/task.interfaces";
-import {UpdateTaskReqDto} from "../dto/req/update-task.req.dto";
-import {CreateTaskDto} from "../dto/req/create-task.req.dto";
+
+import {TaskRepository} from '../../repository/services/task.repository';
+import {CreateTaskReqDto} from '../dto/req/create-task.req.dto';
+import {TaskListQueryDto} from '../dto/req/task-list.query.dto';
+import {UpdateTaskReqDto} from '../dto/req/update-task.req.dto';
+import {TaskListResDto} from '../dto/res/task-list.res.dto';
+import {TaskResDto} from '../inerfaces/task.interfaces';
 
 @Injectable()
 export class TasksService {
   constructor(private readonly taskRepository: TaskRepository) {}
 
   async getAllTasks(query: TaskListQueryDto): Promise<TaskListResDto> {
-    const [tasks, total] = await this.taskRepository.getAllTasks(query);
     const { page = 1, limit = 10 } = query;
+    const [tasks, total] = await this.taskRepository.getAllTasks(query);
 
     return {
       tasks: tasks.map((task) => ({
@@ -24,12 +25,12 @@ export class TasksService {
         updatedAt: task.updated_at,
       })),
       total,
-      page,
-      limit,
+      page: Number(page),
+      limit: Number(limit),
     };
   }
 
-  async createTask(createTaskDto: CreateTaskDto): Promise<TaskResDto> {
+  async createTask(createTaskDto: CreateTaskReqDto): Promise<TaskResDto> {
     const task = this.taskRepository.create({
       title: createTaskDto.title,
       priority: createTaskDto.priority,

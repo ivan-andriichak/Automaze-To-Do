@@ -1,7 +1,7 @@
-import { Global, Module } from '@nestjs/common';
-import {TaskRepository} from "./services/task.repository";
-import {PostgresModule} from "../postgres/postgres.module";
+import {Global, Module} from '@nestjs/common';
 
+import {PostgresModule} from '../postgres/postgres.module';
+import {TaskRepository} from './services/task.repository';
 
 const repositories = [TaskRepository];
 @Global()

@@ -1,5 +1,6 @@
 import * as process from 'node:process';
-import { Config } from './config.type';
+
+import {Config} from './config.type';
 
 export default (): Config => ({
   app: {

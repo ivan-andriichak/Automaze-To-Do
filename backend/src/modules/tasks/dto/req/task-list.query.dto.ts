@@ -1,6 +1,5 @@
-import { IsOptional, IsNumberString, IsIn } from 'class-validator';
-
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import {ApiPropertyOptional} from '@nestjs/swagger';
+import {IsIn, IsNumberString, IsOptional} from 'class-validator';
 
 export class TaskListQueryDto {
   @ApiPropertyOptional({ description: 'Page number for pagination', type: Number, example: 1 })

@@ -23,6 +23,3 @@ export type SentryConfig = {
   env: string;
   debug: boolean;
 };
-
-
-

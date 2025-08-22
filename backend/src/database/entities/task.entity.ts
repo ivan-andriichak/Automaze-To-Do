@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-import {CreateUpdateModel} from "./models/create-update.model";
+import {Column, Entity} from 'typeorm';
+
+import {CreateUpdateModel} from './models/create-update.model';
 
 @Entity()
-export class TaskEntity extends CreateUpdateModel{
+export class TaskEntity extends CreateUpdateModel {
   @Column()
   title: string;
 

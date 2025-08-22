@@ -1,8 +1,9 @@
-import {IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min} from 'class-validator';
 import {ApiProperty} from '@nestjs/swagger';
-import {TaskStatus} from "../../enums/task-status.enum";
+import {IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min} from 'class-validator';
 
-export class CreateTaskDto {
+import {TaskStatus} from '../../enums/task-status.enum';
+
+export class CreateTaskReqDto {
   @ApiProperty({
     description: 'The title of the task',
     example: 'buy bread',

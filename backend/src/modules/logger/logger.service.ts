@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import {Injectable, Logger} from '@nestjs/common';
+import {ConfigService} from '@nestjs/config';
 import * as Sentry from '@sentry/node';
 
-import { Config, SentryConfig } from '../../config/config.type';
+import {Config, SentryConfig} from '../../config/config.type';
 
 @Injectable()
 export class LoggerService {

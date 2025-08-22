@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {Injectable} from '@nestjs/common';
 import {DataSource, Repository} from 'typeorm';
-import {TaskEntity} from "../../../database/entities/task.entity";
-import {TaskListQueryDto} from "../../tasks/dto/req/task-list.query.dto";
+
+import {TaskEntity} from '../../../database/entities/task.entity';
+import {TaskListQueryDto} from '../../tasks/dto/req/task-list.query.dto';
 
 @Injectable()
 export class TaskRepository extends Repository<TaskEntity> {
@@ -31,6 +32,6 @@ export class TaskRepository extends Repository<TaskEntity> {
     const offset = (page - 1) * limit;
     queryBuilder.offset(offset).limit(limit);
 
-    return queryBuilder.getManyAndCount();
+    return await queryBuilder.getManyAndCount();
   }
 }
