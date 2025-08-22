@@ -1,6 +1,6 @@
-import {Column, Entity} from 'typeorm';
+import { Column, Entity } from 'typeorm';
 
-import {CreateUpdateModel} from './models/create-update.model';
+import { CreateUpdateModel } from './models/create-update.model';
 
 @Entity('tasks')
 export class TaskEntity extends CreateUpdateModel {

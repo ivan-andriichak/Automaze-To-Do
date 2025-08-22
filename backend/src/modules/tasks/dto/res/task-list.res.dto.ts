@@ -1,6 +1,6 @@
-import {ApiProperty} from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
-import {TaskResDto} from './task.res.dto';
+import { TaskResDto } from './task.res.dto';
 
 export class TaskListResDto {
   @ApiProperty({ type: [TaskResDto], description: 'List of tasks' })

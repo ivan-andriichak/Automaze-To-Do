@@ -1,6 +1,6 @@
-import {ApiProperty} from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
-import {CreateUpdateModel} from '../../../../database/entities/models/create-update.model';
+import { CreateUpdateModel } from '../../../../database/entities/models/create-update.model';
 
 export class TaskResDto extends CreateUpdateModel {
   @ApiProperty({

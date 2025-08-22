@@ -1,12 +1,12 @@
-import {Injectable, NotFoundException} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
-import {TaskEntity} from '../../../database/entities/task.entity';
-import {TaskRepository} from '../../repository/services/task.repository';
-import {CreateTaskReqDto} from '../dto/req/create-task.req.dto';
-import {TaskListReqDto} from '../dto/req/task-list.req.dto';
-import {UpdateTaskReqDto} from '../dto/req/update-task.req.dto';
-import {TaskResDto} from '../dto/res/task.res.dto';
-import {TaskListResDto} from '../dto/res/task-list.res.dto';
+import { TaskEntity } from '../../../database/entities/task.entity';
+import { TaskRepository } from '../../repository/services/task.repository';
+import { CreateTaskReqDto } from '../dto/req/create-task.req.dto';
+import { TaskListReqDto } from '../dto/req/task-list.req.dto';
+import { UpdateTaskReqDto } from '../dto/req/update-task.req.dto';
+import { TaskResDto } from '../dto/res/task.res.dto';
+import { TaskListResDto } from '../dto/res/task-list.res.dto';
 
 @Injectable()
 export class TasksService {

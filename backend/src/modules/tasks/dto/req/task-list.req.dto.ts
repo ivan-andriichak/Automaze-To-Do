@@ -1,8 +1,8 @@
-import {ApiPropertyOptional} from '@nestjs/swagger';
-import {Type} from 'class-transformer';
-import {IsEnum, IsIn, IsInt, IsOptional, IsString, Min} from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsEnum, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
-import {TaskStatus} from '../../enums/task-status.enum';
+import { TaskStatus } from '../../enums/task-status.enum';
 
 export class TaskListReqDto {
   @ApiPropertyOptional({ description: 'Page number for pagination', example: 1, default: 1 })
@@ -37,5 +37,5 @@ export class TaskListReqDto {
   @ApiPropertyOptional({ description: 'Sort order by priority', enum: ['asc', 'desc'], example: 'asc' })
   @IsIn(['asc', 'desc'])
   @IsOptional()
-  sort?: 'asc' | 'desc';
+  sort?: 'asc' | 'desc' = 'desc';
 }

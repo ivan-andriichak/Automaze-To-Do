@@ -12,7 +12,7 @@ export default function Home() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
-  const [sort, setSort] = useState<'asc' | 'desc'>('asc');
+  const [sort, setSort] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 

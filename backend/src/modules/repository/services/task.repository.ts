@@ -1,8 +1,8 @@
-import {Injectable} from '@nestjs/common';
-import {DataSource, Repository} from 'typeorm';
+import { Injectable } from '@nestjs/common';
+import { DataSource, Repository } from 'typeorm';
 
-import {TaskEntity} from '../../../database/entities/task.entity';
-import {TaskListReqDto} from '../../tasks/dto/req/task-list.req.dto';
+import { TaskEntity } from '../../../database/entities/task.entity';
+import { TaskListReqDto } from '../../tasks/dto/req/task-list.req.dto';
 
 @Injectable()
 export class TaskRepository extends Repository<TaskEntity> {
