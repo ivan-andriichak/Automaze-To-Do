@@ -7,7 +7,7 @@ export class TaskEntity extends CreateUpdateModel {
   @Column()
   title: string;
 
-  @Column({ type: 'text', nullable: false })
+  @Column({ type: 'text', nullable: true })
   description: string | null;
 
   @Column({ default: false })

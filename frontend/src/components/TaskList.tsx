@@ -10,10 +10,10 @@ export default function TaskList({ tasks, onUpdate, onDelete }: TaskListProps) {
   return (
     <ul>
       {tasks.map((task) => (
-        <li key={task.id} className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
+       <li key={task.id} className="flex items-center justify-between gap-1 p-4 mb-1 border-b rounded-xl bg-white shadow-md">
           <div>
-            <h3 className="font-semibold">{task.title}</h3>
-            {task.description && <p className="text-sm text-gray-500">{task.description}</p>}
+           <h3 className="font-light">{task.done ? <s>{task.title}</s> : task.title}</h3>
+            {task.description && <p className="text-sm text-gray-400">{task.description}</p>}
           </div>
           <div className="flex items-center space-x-4">
             <input
@@ -33,11 +33,8 @@ export default function TaskList({ tasks, onUpdate, onDelete }: TaskListProps) {
                 </option>
               ))}
             </select>
-            <button
-              onClick={() => onDelete(task.id)}
-              className="px-2 py-1 bg-red-500 text-white rounded"
-            >
-              Delete
+           <button  onClick={() => onDelete(task.id)}  className="px-4 py-2 bg-gray-100 text-black rounded flex items-center justify-center" aria-label="Close">
+              &#10005;
             </button>
           </div>
         </li>

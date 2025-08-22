@@ -20,7 +20,7 @@ export default function TaskForm({ onAdd }: TaskFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 border-b border-gray-200 dark:border-gray-700 space-y-4">
+    <form onSubmit={handleSubmit} className=" p-6 border-b border-gray-200 dark:border-gray-700 space-y-4">
       <input
         type="text"
         value={title}
