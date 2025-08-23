@@ -4,8 +4,8 @@ import { Task } from '@/types/task';
 interface EditTaskModalProps {
   task: Task;
   onClose: () => void;
-  onSave: (id: string, updates: Partial<Task>) => void;
-  onDelete: (id: string) => void;
+  onSave: (id: string, updates: Partial<Task>) => void | Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
 }
 
 export default function EditTaskModal({
@@ -14,27 +14,42 @@ export default function EditTaskModal({
   onSave,
   onDelete,
 }: EditTaskModalProps) {
-  const [editTitle, setEditTitle] = useState('');
-  const [editDescription, setEditDescription] = useState('');
+  const [editTitle, setEditTitle] = useState(task.title);
+  const [editDescription, setEditDescription] = useState(
+    task.description || '',
+  );
 
   useEffect(() => {
-    setEditTitle(task.title || '');
-    setEditDescription(task.description || '');
+    if (task) {
+      setEditTitle(task.title);
+      setEditDescription(task.description || '');
+    }
   }, [task]);
 
-  const handleSave = () => {
-    onSave(task.id, { title: editTitle, description: editDescription });
-    onClose();
+  const handleSave = async () => {
+    try {
+      await onSave(task.id, {
+        title: editTitle.trim(),
+        description: editDescription.trim(),
+      });
+      onClose();
+    } catch (error) {
+      console.error('Failed to save task:', error);
+    }
   };
 
   const handleDelete = async () => {
-    await onDelete(task.id);
-    onClose();
+    try {
+      await onDelete(task.id);
+      onClose();
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+    }
   };
 
   return (
-    <div className="m-4">
-      <div className="bg-white p-6 rounded shadow-lg min-w-[300px] border border-gray-200">
+    <div className="m-1">
+      <div className="bg-white p-6 rounded shadow-lg min-w-[300px] border border-gray-200 relative">
         <h3 className="text-lg  mb-2">Edit Task: {task.title}</h3>
         <label className="block mb-2">
           <span className="block mb-1 font-light">Title:</span>
@@ -68,8 +83,9 @@ export default function EditTaskModal({
           </button>
           <button
             onClick={onClose}
-            className="px-2 py-1 bg-gray-300 text-black rounded">
-            Cancel
+            className="absolute top-2 right-2 p-1 hover:text-blue-500"
+            aria-label="Clear search">
+            &#10006;
           </button>
         </div>
       </div>

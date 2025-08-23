@@ -53,15 +53,9 @@ export default function Home() {
   const handleUpdateTask = async (id: string, updates: Partial<Task>) => {
     try {
       await updateTask(id, updates);
-      if (updates.priority !== undefined) {
-        await fetchTasks();
-      } else {
-        setTasks(tasks =>
-          tasks.map(task => (task.id === id ? { ...task, ...updates } : task)),
-        );
-      }
+      await fetchTasks();
     } catch (error) {
-      console.error('Failed to update task:', error);
+      console.error('Failed to update task:', { id, updates, error });
     }
   };
 
@@ -85,7 +79,7 @@ export default function Home() {
           day: 'numeric',
         })}
       </div>
-      <header className="mb-10 flex items-center">
+      <header className="mb-5 flex items-center">
         <div>
           <p className="text-2xl font-light">My To-Do</p>
         </div>
