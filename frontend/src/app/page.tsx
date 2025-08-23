@@ -66,7 +66,7 @@ export default function Home() {
   const noResults = hasSearched && tasks.length === 0;
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-1 sm:p-8 md:p-4 lg:p-6 bg-transparent">
+   <main className="flex min-h-screen flex-col p-1 sm:p-8 md:p-4 lg:p-6 bg-transparent max-w-7xl mx-auto">
       <div className="text-gray-500">
         {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
       </div>
@@ -113,7 +113,7 @@ export default function Home() {
                   className={`ml-2 transition-transform inline-block ${showCompleted ? 'rotate-90' : ''}`}
                   style={{ cursor: 'pointer' }}
                 >
-                 ▶
+               ⮞
            </span>
               </button>
             )}
@@ -129,7 +129,7 @@ export default function Home() {
               </div>
             )}
           </div>
-          <div className="w-full fixed bottom-10 left-0 flex justify-center bg-transparent z-10">
+          <div className="w-full  fixed bottom-10 left-0 flex justify-center bg-transparent z-10">
             <TaskForm onAdd={handleAddTask} />
           </div>
         </>
