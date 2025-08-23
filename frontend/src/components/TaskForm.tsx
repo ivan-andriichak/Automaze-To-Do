@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 
 interface TaskFormProps {
   onAdd: (title: string, description: string | null, priority: number) => void;
@@ -20,38 +20,45 @@ export default function TaskForm({ onAdd }: TaskFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit}
-          className="flex items-center justify-between mt-3
+    <form
+      onSubmit={handleSubmit}
+      className="flex items-center justify-between mt-3
           p-2 rounded-md bg-gray-100 shadow-md hover:bg-white transition-colors">
       <input
         type="text"
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={e => setTitle(e.target.value)}
         placeholder="Add task"
-       className="p-0 m-0 border-none outline-none bg-transparent "
+        className="p-0 m-0 border-none outline-none bg-transparent "
         required
       />
-        <input
-          type="number"
-          value={priority}
-          onChange={(e) => setPriority(Number(e.target.value))}
-          min={1}
-          max={10}
+      <input
+        type="number"
+        value={priority}
+        onChange={e => setPriority(Number(e.target.value))}
+        min={1}
+        max={10}
         className="w-12 p-1  border rounded mx-2
         focus:border-blue-300 focus:outline-none transition-colors bg-inherit"
-        />
+      />
       {title.trim() ? (
         <button
           type="submit"
-          className="rounded-full  w-12 h-12 flex items-center justify-center text-black hover:bg-gray-200 transition-colors"
-        >
+          className="rounded-full  w-12 h-12 flex items-center justify-center text-black hover:bg-gray-200 transition-colors">
           <span style={{ fontSize: '1.5rem', color: '#0b5eee' }}>&#10003;</span>
-      </button>
+        </button>
       ) : (
-        <button type="button" className="rounded-full  w-12 h-12 flex items-center justify-center" tabIndex={-1}>
-         <span
-            style={{ fontSize: '3rem', fontWeight: 100, color: '#0b5eee', transition: 'font-weight 0.2s' }}
-          >
+        <button
+          type="button"
+          className="rounded-full  w-12 h-12 flex items-center justify-center"
+          tabIndex={-1}>
+          <span
+            style={{
+              fontSize: '3rem',
+              fontWeight: 100,
+              color: '#0b5eee',
+              transition: 'font-weight 0.2s',
+            }}>
             +
           </span>
         </button>

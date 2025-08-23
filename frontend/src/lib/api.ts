@@ -1,8 +1,16 @@
-import {CreateTaskDto, Task, TaskListQueryDto, TaskListResponse, UpdateTaskDto} from '@/types/task';
+import {
+  CreateTaskDto,
+  Task,
+  TaskListQueryDto,
+  TaskListResponse,
+  UpdateTaskDto,
+} from '@/types/task';
 
 const API_BASE_URL = 'http://localhost:5000';
 
-export async function getTasks(query: TaskListQueryDto = {}): Promise<TaskListResponse> {
+export async function getTasks(
+  query: TaskListQueryDto = {},
+): Promise<TaskListResponse> {
   const params = new URLSearchParams(query as never).toString();
   const response = await fetch(`${API_BASE_URL}/tasks?${params}`);
   if (!response.ok) {
@@ -23,7 +31,10 @@ export async function createTask(data: CreateTaskDto): Promise<Task> {
   return response.json();
 }
 
-export async function updateTask(id: string, data: UpdateTaskDto): Promise<Task> {
+export async function updateTask(
+  id: string,
+  data: UpdateTaskDto,
+): Promise<Task> {
   const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },

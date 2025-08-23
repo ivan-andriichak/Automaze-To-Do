@@ -1,11 +1,11 @@
 'use client';
 
-import React, {useCallback, useEffect, useState} from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import TaskForm from '@/components/TaskForm';
 import TaskList from '@/components/TaskList';
 import TaskFilter from '@/components/TaskFilter';
-import {Task, TaskListResponse} from '@/types/task';
-import {createTask, deleteTask, getTasks, updateTask} from '@/lib/api';
+import { Task, TaskListResponse } from '@/types/task';
+import { createTask, deleteTask, getTasks, updateTask } from '@/lib/api';
 
 export default function Home() {
   const [showCompleted, setShowCompleted] = useState(false);
@@ -18,7 +18,12 @@ export default function Home() {
 
   const fetchTasks = useCallback(async () => {
     try {
-      const data: TaskListResponse = await getTasks({ search, status, sort, limit });
+      const data: TaskListResponse = await getTasks({
+        search,
+        status,
+        sort,
+        limit,
+      });
       setTasks(data.tasks);
       if (search) {
         setHasSearched(true);
@@ -32,7 +37,11 @@ export default function Home() {
     fetchTasks();
   }, [fetchTasks]);
 
-  const handleAddTask = async (title: string, description: string | null, priority: number) => {
+  const handleAddTask = async (
+    title: string,
+    description: string | null,
+    priority: number,
+  ) => {
     try {
       await createTask({ title, description, priority });
       await fetchTasks();
@@ -47,7 +56,9 @@ export default function Home() {
       if (updates.priority !== undefined) {
         await fetchTasks();
       } else {
-        setTasks((tasks) => tasks.map((task) => (task.id === id ? { ...task, ...updates } : task)));
+        setTasks(tasks =>
+          tasks.map(task => (task.id === id ? { ...task, ...updates } : task)),
+        );
       }
     } catch (error) {
       console.error('Failed to update task:', error);
@@ -66,9 +77,13 @@ export default function Home() {
   const noResults = hasSearched && tasks.length === 0;
 
   return (
-   <main className="flex min-h-screen flex-col p-1 sm:p-8 md:p-4 lg:p-6 bg-transparent max-w-7xl mx-auto">
+    <main className="flex min-h-screen flex-col p-1 sm:p-8 md:p-4 lg:p-6 bg-transparent max-w-7xl mx-auto">
       <div className="text-gray-500">
-        {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        {new Date().toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+        })}
       </div>
       <header className="mb-10 flex items-center">
         <div>
@@ -81,47 +96,48 @@ export default function Home() {
           setStatus={setStatus}
           sort={sort}
           setSort={setSort}
-          />
-          </header>
+        />
+      </header>
 
-        {noResults ? (
+      {noResults ? (
         <div className="w-full max-w-full text-center text-gray-500 mt-10">
           <p>No tasks found for your search.</p>
         </div>
-         ) : (
+      ) : (
         <>
           <div
-              className="w-full max-w-full overflow-y-auto"
-              style={{
+            className="w-full max-w-full overflow-y-auto"
+            style={{
               maxHeight: '70vh',
               minHeight: '200px',
               scrollbarWidth: 'thin',
               scrollbarColor: 'inherit',
               overscrollBehavior: 'contain',
-            }}
-              >
+            }}>
             <div className="bg-transparent dark:bg-transparent rounded-lg shadow-md">
-              <TaskList tasks={tasks.filter((task) => !task.done)} onUpdate={handleUpdateTask} onDelete={handleDeleteTask} />
+              <TaskList
+                tasks={tasks.filter(task => !task.done)}
+                onUpdate={handleUpdateTask}
+                onDelete={handleDeleteTask}
+              />
             </div>
-            {tasks.filter((task) => task.done).length > 0 && (
+            {tasks.filter(task => task.done).length > 0 && (
               <button
                 className="mt-1.5 px-4 py-2  bg-gray-100 rounded hover:bg-white"
-                onClick={() => setShowCompleted((v) => !v)}
-              >
-                Completed {tasks.filter((task) => task.done).length}
+                onClick={() => setShowCompleted(v => !v)}>
+                Completed {tasks.filter(task => task.done).length}
                 <span
                   className={`ml-2 transition-transform inline-block ${showCompleted ? 'rotate-90' : ''}`}
-                  style={{ cursor: 'pointer' }}
-                >
-               ⮞
-           </span>
+                  style={{ cursor: 'pointer' }}>
+                  ⮞
+                </span>
               </button>
             )}
             {showCompleted && (
               <div className="w-full max-w-full overflow-auto mt-2">
                 <div className="bg-transparent dark:bg-transparent rounded-lg shadow-md">
                   <TaskList
-                    tasks={tasks.filter((task) => task.done)}
+                    tasks={tasks.filter(task => task.done)}
                     onUpdate={handleUpdateTask}
                     onDelete={handleDeleteTask}
                   />
