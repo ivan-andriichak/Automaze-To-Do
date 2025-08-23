@@ -28,7 +28,7 @@ export default function TaskForm({ onAdd }: TaskFormProps) {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Add task"
-       className="p-0 m-0 border-none outline-none bg-transparent"
+       className="p-0 m-0 border-none outline-none bg-transparent "
         required
       />
         <input
@@ -37,7 +37,8 @@ export default function TaskForm({ onAdd }: TaskFormProps) {
           onChange={(e) => setPriority(Number(e.target.value))}
           min={1}
           max={10}
-        className="w-16  border rounded mx-2"
+        className="w-12 p-1  border rounded mx-2
+        focus:border-blue-300 focus:outline-none transition-colors bg-inherit"
         />
       {title.trim() ? (
         <button

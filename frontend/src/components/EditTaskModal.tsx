@@ -1,0 +1,82 @@
+import {useEffect, useState} from 'react';
+import {Task} from '@/types/task';
+
+interface EditTaskModalProps {
+  task: Task;
+  onClose: () => void;
+  onSave: (id: string, updates: Partial<Task>) => void;
+  onDelete: (id: string) => Promise<void>;
+}
+
+export default function EditTaskModal({ task, onClose, onSave, onDelete }: EditTaskModalProps) {
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+
+  useEffect(() => {
+    setEditTitle(task.title || '');
+    setEditDescription(task.description || '');
+  }, [task]);
+
+  const handleSave = () => {
+    onSave(task.id, { title: editTitle, description: editDescription });
+    onClose();
+  };
+
+  const handleDelete = async () => {
+    await onDelete(task.id);
+    onClose();
+  };
+
+  return (
+    <div className="m-4">
+      <div className="bg-white p-6 rounded shadow-lg min-w-[300px] border border-gray-200">
+        <h3 className="text-lg  mb-2">
+          Edit Task: {task.title}
+        </h3>
+        <label className="block mb-2">
+          <span className="block mb-1 font-light">
+            Title:
+          </span>
+          <input
+            className="w-full border rounded p-2 mt-1
+             focus:border-blue-300 focus:outline-none transition-colors
+             font-light"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+          />
+        </label>
+        <label className="block mb-2">
+         <span className="block mb-1 font-light">
+            Add note:
+          </span>
+          <textarea
+            className="w-full border rounded  p-2 mt-1
+            focus:border-blue-300 focus:outline-none transition-colors  font-light"
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+          />
+        </label>
+        <div className="flex justify-end space-x-2 mt-4">
+          <button
+            onClick={handleSave}
+            className="px-2 py-1 bg-green-600 text-white rounded"
+          >
+            Save
+          </button>
+          <button
+            onClick={handleDelete}
+            className="px-2 py-1 bg-orange-600 text-white rounded"
+          >
+            Delete
+          </button>
+          <button
+            onClick={onClose}
+            className="px-2 py-1 bg-gray-300 text-black rounded"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
