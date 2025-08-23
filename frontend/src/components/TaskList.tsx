@@ -122,12 +122,18 @@ interface TaskListProps {
                                       >
                                         Save
                                       </button>
-                                      <button
-                                        onClick={() => onDelete(selectedTask.id)}
-                                        className="px-4 py-2 bg-red-500 text-white rounded"
-                                      >
-                                        Delete
-                                      </button>
+                                <button
+                                  onClick={async () => {
+                                    if (selectedTask) {
+                                      await onDelete(selectedTask.id);
+                                      handleCloseModal();
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-red-500 text-white rounded"
+                                  disabled={!selectedTask}
+                                >
+                                  Delete
+                                </button>
                                       <button
                                         onClick={handleCloseModal}
                                         className="px-4 py-2 bg-gray-300 text-black rounded"
