@@ -27,4 +27,16 @@ export class TaskResDto extends CreateUpdateModel {
     example: 5,
   })
   priority: number;
+
+  @ApiProperty({
+    description: 'The timestamp when the task was created',
+    example: '2025-08-22T10:00:00.000Z',
+  })
+  declare createdAt: Date;
+
+  @ApiProperty({
+    description: 'The timestamp when the task was last updated',
+    example: '2025-08-22T10:00:00.000Z',
+  })
+  declare updatedAt: Date;
 }

@@ -111,7 +111,6 @@ export default function Home() {
           <div className="flex flex-1 overflow-hidden">
             <div
               className={`flex-1 transition-all duration-300 overflow-y-auto pr-4`}>
-              {/* Списки завдань */}
               <TaskList
                 tasks={tasks.filter(task => !task.done)}
                 onUpdate={handleUpdateTask}
@@ -144,7 +143,7 @@ export default function Home() {
             </div>
 
             {selectedTask && (
-              <div className="w-1/3 ml-4 transition-all duration-300">
+              <div className="fixed inset-0 bg-black bg-opacity-25 z-20 md:relative md:inset-auto md:z-auto md:bg-transparent md:w-1/3 md:ml-4 transition-all duration-300">
                 <EditTaskModal
                   task={selectedTask}
                   onClose={handleCloseModal}
