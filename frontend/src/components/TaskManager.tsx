@@ -8,12 +8,17 @@ import { Task, TaskListResponse } from '@/types/task';
 import { createTask, deleteTask, getTasks, updateTask } from '@/lib/api';
 import EditTaskModal from '@/components/EditTaskModal';
 import Sidebar from '@/components/Sidebar';
+import MenuButton from './MenuButton';
 
 interface TaskManagerProps {
   initialSearch: string;
   initialStatus: string;
   initialSort: 'asc' | 'desc';
 }
+
+// Визначаємо breakpoints для нашої логіки
+const SIDEBAR_BREAKPOINT = 1024; // px, коли сайдбар стає плаваючим
+const MODAL_BREAKPOINT = 768; // px, коли модалка стає повноекранною
 
 export default function TaskManager({
   initialSearch,
@@ -23,19 +28,39 @@ export default function TaskManager({
   const router = useRouter();
   const pathname = usePathname();
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [showMenuButton, setShowMenuButton] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [search, setSearch] = useState(initialSearch);
   const [status, setStatus] = useState(initialStatus);
   const [sort, setSort] = useState<'asc' | 'desc'>(initialSort);
   const [limit] = useState(30);
-  const [hasSearched, setHasSearched] = useState(!!initialSearch);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const username = 'ivan-andriichak';
 
   const handleOpenModal = (task: Task) => setSelectedTask(task);
   const handleCloseModal = () => setSelectedTask(null);
+  const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
+  const closeSidebar = () => setIsSidebarOpen(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const screenWidth = window.innerWidth;
+      // Кнопка-бургер з'являється, коли екран стає вужчим за наш breakpoint
+      setShowMenuButton(screenWidth < SIDEBAR_BREAKPOINT);
+      // Якщо екран вузький, сайдбар за замовчуванням закритий
+      if (screenWidth < SIDEBAR_BREAKPOINT) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -54,7 +79,6 @@ export default function TaskManager({
         limit,
       });
       setTasks(data.tasks);
-      if (search) setHasSearched(true);
     } catch (error) {
       console.error('Failed to fetch tasks:', error);
     }
@@ -101,11 +125,18 @@ export default function TaskManager({
     }
   };
 
-  const noResults = hasSearched && tasks.length === 0;
+  const noResults = tasks.length === 0 && !!search;
+
+  // Динамічні класи для модального вікна
+  const modalContainerClasses = selectedTask
+    ? `w-full md:w-[400px] shrink-0 ml-0 md:ml-4` // Ширина, коли відкрито
+    : `w-0 shrink-0`; // Ширина, коли закрито
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-white overflow-hidden">
       <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={closeSidebar}
         username={username}
         search={search}
         setSearch={setSearch}
@@ -114,25 +145,29 @@ export default function TaskManager({
         sort={sort}
         setSort={setSort}
       />
-      <main className="flex-1 flex flex-col p-6 overflow-hidden">
-        <header className="mb-5">
-          <p className="text-2xl font-bold text-gray-800">My Day</p>
-          <p className="text-gray-500 text-sm">
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </p>
+      <main className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden min-w-0">
+        <header className="mb-5 flex items-center shrink-0">
+          {showMenuButton && <MenuButton onClick={toggleSidebar} />}
+          <div className={`${showMenuButton ? 'ml-4' : ''}`}>
+            <p className="text-2xl font-bold text-gray-800">My Day</p>
+            <p className="text-gray-500 text-sm">
+              {new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </p>
+          </div>
         </header>
+
         {noResults ? (
           <div className="flex-1 flex items-center justify-center text-gray-500">
             <p>No tasks found for your search.</p>
           </div>
         ) : (
           <div className="flex flex-1 overflow-hidden">
-            <div
-              className={`flex-1 transition-all duration-300 overflow-y-auto pr-4`}>
+            {/* Основний контейнер для списку тасок */}
+            <div className="flex-1 h-full overflow-y-auto pr-4 min-w-0">
               <TaskList
                 tasks={tasks.filter(task => !task.done)}
                 onUpdate={handleUpdateTask}
@@ -163,19 +198,32 @@ export default function TaskManager({
                 </div>
               )}
             </div>
-            {selectedTask && (
-              <div className="fixed inset-0 bg-black bg-opacity-25 z-20 md:relative md:inset-auto md:z-auto md:bg-transparent md:w-1/3 md:ml-4 transition-all duration-300">
-                <EditTaskModal
-                  task={selectedTask}
-                  onClose={handleCloseModal}
-                  onSave={handleUpdateTask}
-                  onDelete={handleDeleteTask}
-                />
+
+            {/* Контейнер для модального вікна */}
+            <div
+              className={`transition-all duration-300 ease-in-out
+              md:relative fixed inset-0 bg-black bg-opacity-25 md:bg-transparent z-20 md:z-auto
+              ${selectedTask ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              <div
+                className="absolute top-0 right-0 h-full w-[90%] max-w-md md:w-auto md:relative transition-transform duration-300 ease-in-out"
+                style={{
+                  transform: selectedTask
+                    ? 'translateX(0)'
+                    : 'translateX(100%)',
+                }}>
+                {selectedTask && (
+                  <EditTaskModal
+                    task={selectedTask}
+                    onClose={handleCloseModal}
+                    onSave={handleUpdateTask}
+                    onDelete={handleDeleteTask}
+                  />
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
-        <div className="mt-auto pt-6">
+        <div className="mt-auto pt-6 shrink-0">
           <TaskForm onAdd={handleAddTask} />
         </div>
       </main>
