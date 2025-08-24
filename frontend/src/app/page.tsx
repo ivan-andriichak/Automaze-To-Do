@@ -4,11 +4,12 @@ import { Suspense } from 'react';
 export default async function Home({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const initialSearch = searchParams?.search?.toString() || '';
-  const initialStatus = searchParams?.status?.toString() || 'all';
-  const initialSort = searchParams?.sort === 'asc' ? 'asc' : 'desc';
+  const params = searchParams ? await searchParams : {};
+  const initialSearch = params.search?.toString() || '';
+  const initialStatus = params.status?.toString() || 'all';
+  const initialSort = params.sort === 'asc' ? 'asc' : 'desc';
 
   return (
     <Suspense
