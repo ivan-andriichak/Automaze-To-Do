@@ -3,7 +3,7 @@ import { Task } from '@/types/task';
 import CloseButton from './CloseButton';
 
 interface EditTaskModalProps {
-  task: Task;
+  task: Task | null;
   onClose: () => void;
   onSave: (id: string, updates: Partial<Task>) => void | Promise<void>;
   onDelete: (id: string) => void | Promise<void>;
@@ -15,27 +15,34 @@ export default function EditTaskModal({
   onSave,
   onDelete,
 }: EditTaskModalProps) {
-  const [editTitle, setEditTitle] = useState(task.title);
-  const [editDescription, setEditDescription] = useState(
-    task.description || '',
-  );
-
-  const isTitleEmpty = !editTitle.trim();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
 
   useEffect(() => {
     if (task) {
-      setEditTitle(task.title);
-      setEditDescription(task.description || '');
+      setTitle(task.title ?? '');
+      setDescription(task.description ?? '');
     }
   }, [task]);
+
+  if (!task) {
+    return null;
+  }
+
+  const isTitleEmpty = !title.trim();
 
   const handleSaveAndClose = async () => {
     if (isTitleEmpty) return;
     try {
-      await onSave(task.id, {
-        title: editTitle.trim(),
-        description: editDescription.trim() || null,
-      });
+      if (
+        title.trim() !== task.title ||
+        description.trim() !== (task.description ?? '')
+      ) {
+        await onSave(task.id, {
+          title: title.trim(),
+          description: description.trim() || null,
+        });
+      }
       onClose();
     } catch (error) {
       console.error('Failed to save task:', error);
@@ -54,9 +61,7 @@ export default function EditTaskModal({
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return 'Invalid date';
-      }
+      if (isNaN(date.getTime())) return 'Invalid date';
       return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -100,26 +105,24 @@ export default function EditTaskModal({
           </span>
         </label>
         <textarea
-          value={editTitle}
-          onChange={e => setEditTitle(e.target.value)}
+          value={title}
+          onChange={e => setTitle(e.target.value)}
           placeholder={isTitleEmpty ? 'Title cannot be empty' : ''}
           rows={1}
           className={`w-full text-lg font-semibold bg-transparent resize-none outline-none border rounded-lg p-2 transition
-  ${isTitleEmpty ? 'border-red-500' : 'border-gray-300'} 
-  focus:border-blue-500`}
+            ${isTitleEmpty ? 'border-red-500' : 'border-gray-300'} 
+            focus:border-blue-500`}
         />
       </div>
-
       <div className="flex-1 mb-4">
         <textarea
           className="w-full h-full text-sm resize-none border rounded-lg p-3
            focus:border-blue-400 focus:ring-blue-200 focus:ring-opacity-50 transition"
-          value={editDescription}
-          onChange={e => setEditDescription(e.target.value)}
+          value={description}
+          onChange={e => setDescription(e.target.value)}
           placeholder="Add a note..."
         />
       </div>
-
       <div className="mt-auto flex items-center justify-between text-sm text-gray-500 border-t pt-3">
         <button
           onClick={handleSaveAndClose}
@@ -127,7 +130,6 @@ export default function EditTaskModal({
           className="font-semibold text-blue-600 hover:text-blue-800 disabled:text-gray-400">
           Done
         </button>
-
         <div className="text-center">
           {task.updated_at && task.created_at !== task.updated_at ? (
             <span>Updated: {formatDate(task.updated_at)}</span>
@@ -135,7 +137,6 @@ export default function EditTaskModal({
             <span>Created: {formatDate(task.created_at)}</span>
           )}
         </div>
-
         <button
           onClick={handleDeleteAndClose}
           className="text-gray-500 hover:text-red-600"
