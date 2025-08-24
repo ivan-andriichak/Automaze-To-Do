@@ -17,9 +17,6 @@ interface TaskManagerProps {
   initialSort: 'asc' | 'desc';
 }
 
-const SIDEBAR_BREAKPOINT = 1024;
-const MODAL_BREAKPOINT = 768;
-
 export default function TaskManager({
   initialSearch,
   initialStatus,
@@ -33,6 +30,7 @@ export default function TaskManager({
   const [showMenuButton, setShowMenuButton] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [totalTasksCount, setTotalTasksCount] = useState(0);
   const [search, setSearch] = useState(initialSearch);
   const [status, setStatus] = useState(initialStatus);
   const [sort, setSort] = useState<'asc' | 'desc'>(initialSort);
@@ -61,11 +59,10 @@ export default function TaskManager({
 
   useEffect(() => {
     const handleResize = () => {
+      const SIDEBAR_BREAKPOINT = 1024;
       const screenWidth = window.innerWidth;
-      setShowMenuButton(screenWidth < MODAL_BREAKPOINT);
-      if (screenWidth < MODAL_BREAKPOINT) {
-        setIsSidebarOpen(false);
-      } else {
+      setShowMenuButton(screenWidth < SIDEBAR_BREAKPOINT);
+      if (screenWidth >= SIDEBAR_BREAKPOINT) {
         setIsSidebarOpen(true);
       }
     };
@@ -86,6 +83,7 @@ export default function TaskManager({
     router.replace(`${pathname}?${params.toString()}`);
   }, [search, status, sort, pathname, router]);
 
+  // 2. Оновлюємо функцію fetchTasks
   const fetchTasks = useCallback(async () => {
     try {
       const data: TaskListResponse = await getTasks({
@@ -95,6 +93,7 @@ export default function TaskManager({
         limit,
       });
       setTasks(data.tasks);
+      setTotalTasksCount(data.total);
     } catch (error) {
       console.error('Failed to fetch tasks:', error);
     }
@@ -144,15 +143,18 @@ export default function TaskManager({
   return (
     <div className={`flex h-screen overflow-hidden ${background}`}>
       <Sidebar
-        isOpen={isSidebarOpen}
-        onClose={closeSidebar}
-        username={username}
-        search={search}
-        setSearch={setSearch}
-        status={status}
-        setStatus={setStatus}
-        sort={sort}
-        setSort={setSort}
+        taskCount={totalTasksCount}
+        {...{
+          isOpen: isSidebarOpen,
+          onClose: closeSidebar,
+          username,
+          search,
+          setSearch,
+          status,
+          setStatus,
+          sort,
+          setSort,
+        }}
       />
       <main className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden min-w-0 bg-transparent relative">
         <header className="mb-5 flex items-center justify-between shrink-0">
@@ -184,7 +186,7 @@ export default function TaskManager({
             {tasks.some(t => t.done) && (
               <>
                 <button
-                  className="mt-4 px-4 py-2 bg-gray-100 rounded hover:bg-white  text-left"
+                  className="mt-4 px-4 py-2 bg-gray-100 rounded hover:bg-white text-left"
                   onClick={() => setShowCompleted(v => !v)}>
                   Completed {tasks.filter(t => t.done).length}
                   <span
@@ -231,7 +233,8 @@ export default function TaskManager({
             <p>No tasks found for your search.</p>
           </div>
         )}
-        <div className="mt-auto pt-6 shrink-0">
+
+        <div className="mt-auto pt-6 shrink-0 z-10">
           <TaskForm onAdd={handleAddTask} />
         </div>
       </main>
