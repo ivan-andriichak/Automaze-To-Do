@@ -16,9 +16,8 @@ interface TaskManagerProps {
   initialSort: 'asc' | 'desc';
 }
 
-// Визначаємо breakpoints для нашої логіки
-const SIDEBAR_BREAKPOINT = 1024; // px, коли сайдбар стає плаваючим
-const MODAL_BREAKPOINT = 768; // px, коли модалка стає повноекранною
+const SIDEBAR_BREAKPOINT = 1024;
+const MODAL_BREAKPOINT = 768;
 
 export default function TaskManager({
   initialSearch,
@@ -48,10 +47,8 @@ export default function TaskManager({
   useEffect(() => {
     const handleResize = () => {
       const screenWidth = window.innerWidth;
-      // Кнопка-бургер з'являється, коли екран стає вужчим за наш breakpoint
-      setShowMenuButton(screenWidth < SIDEBAR_BREAKPOINT);
-      // Якщо екран вузький, сайдбар за замовчуванням закритий
-      if (screenWidth < SIDEBAR_BREAKPOINT) {
+      setShowMenuButton(screenWidth < MODAL_BREAKPOINT);
+      if (screenWidth < MODAL_BREAKPOINT) {
         setIsSidebarOpen(false);
       } else {
         setIsSidebarOpen(true);
@@ -127,11 +124,6 @@ export default function TaskManager({
 
   const noResults = tasks.length === 0 && !!search;
 
-  // Динамічні класи для модального вікна
-  const modalContainerClasses = selectedTask
-    ? `w-full md:w-[400px] shrink-0 ml-0 md:ml-4` // Ширина, коли відкрито
-    : `w-0 shrink-0`; // Ширина, коли закрито
-
   return (
     <div className="flex h-screen bg-white overflow-hidden">
       <Sidebar
@@ -166,7 +158,6 @@ export default function TaskManager({
           </div>
         ) : (
           <div className="flex flex-1 overflow-hidden">
-            {/* Основний контейнер для списку тасок */}
             <div className="flex-1 h-full overflow-y-auto pr-4 min-w-0">
               <TaskList
                 tasks={tasks.filter(task => !task.done)}
@@ -199,7 +190,6 @@ export default function TaskManager({
               )}
             </div>
 
-            {/* Контейнер для модального вікна */}
             <div
               className={`transition-all duration-300 ease-in-out
               md:relative fixed inset-0 bg-black bg-opacity-25 md:bg-transparent z-20 md:z-auto
