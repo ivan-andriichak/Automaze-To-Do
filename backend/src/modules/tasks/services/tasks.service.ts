@@ -15,8 +15,8 @@ export class TasksService {
   private mapTaskToResDto(task: TaskEntity): TaskResDto {
     return {
       id: task.id,
-      createdAt: task.createdAt,
-      updatedAt: task.updatedAt,
+      created_at: task.created_at,
+      updated_at: task.updated_at,
       title: task.title,
       description: task.description,
       done: task.done,

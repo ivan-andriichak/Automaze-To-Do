@@ -4,8 +4,8 @@ export interface Task {
   description: string | null;
   done: boolean;
   priority: number;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface TaskListResponse {

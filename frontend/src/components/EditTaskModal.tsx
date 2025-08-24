@@ -126,11 +126,15 @@ export default function EditTaskModal({
           className="font-semibold text-blue-600 hover:text-blue-800 disabled:text-gray-400">
           Done
         </button>
-        <span className="text-gray-500">
-          {task.createdAt
-            ? `Created on ${formatDate(task.createdAt)}`
-            : 'Creation date not available'}
-        </span>
+
+        <div className="text-center">
+          {task.updated_at && task.created_at !== task.updated_at ? (
+            <span>Updated: {formatDate(task.updated_at)}</span>
+          ) : (
+            <span>Created: {formatDate(task.created_at)}</span>
+          )}
+        </div>
+
         <button
           onClick={handleDeleteAndClose}
           className="text-gray-500 hover:text-red-600"

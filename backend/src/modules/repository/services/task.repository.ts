@@ -19,6 +19,8 @@ export class TaskRepository extends Repository<TaskEntity> {
 
     const queryBuilder = this.createQueryBuilder('task');
 
+    queryBuilder.select('task');
+
     if (search) {
       queryBuilder.andWhere('task.title ILIKE :search', { search: `%${search}%` });
     }
@@ -35,7 +37,7 @@ export class TaskRepository extends Repository<TaskEntity> {
         queryBuilder.orderBy('task.priority', order);
       }
     } else {
-      queryBuilder.orderBy('task.created_at', 'DESC');
+      queryBuilder.orderBy('task.createdAt', 'DESC');
     }
 
     queryBuilder.offset(offset).limit(limit);

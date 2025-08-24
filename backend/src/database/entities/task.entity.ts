@@ -1,4 +1,4 @@
-import { Column, Entity } from 'typeorm';
+import { Column, CreateDateColumn, Entity, UpdateDateColumn } from 'typeorm';
 
 import { CreateUpdateModel } from './models/create-update.model';
 
@@ -15,4 +15,10 @@ export class TaskEntity extends CreateUpdateModel {
 
   @Column({ type: 'int', default: 1 })
   priority: number;
+
+  @CreateDateColumn()
+  declare created_at: Date;
+
+  @UpdateDateColumn()
+  declare updated_at: Date;
 }
