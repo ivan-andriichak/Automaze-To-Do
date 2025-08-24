@@ -168,7 +168,7 @@ export default function TaskManager({
               />
               {tasks.filter(task => task.done).length > 0 && (
                 <button
-                  className="mt-4 px-4 py-2 bg-gray-100 rounded hover:bg-white w-full text-left"
+                  className="mt-4 px-4 py-2 bg-gray-100 rounded hover:bg-white  text-left"
                   onClick={() => setShowCompleted(v => !v)}>
                   Completed {tasks.filter(task => task.done).length}
                   <span

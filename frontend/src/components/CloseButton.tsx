@@ -8,7 +8,7 @@ export default function CloseButton({ onClick }: CloseButtonProps) {
   return (
     <button
       onClick={onClick}
-      className="absolute top-1 right-1 p-1 rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition-colors"
+      className="absolute top-0 right-1 p-1 rounded-md text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition-colors"
       aria-label="Close details panel">
       <svg
         xmlns="http://www.w3.org/2000/svg"
