@@ -192,8 +192,9 @@ export default function TaskManager({
 
             <div
               className={`transition-all duration-300 ease-in-out
-              md:relative fixed inset-0 bg-black bg-opacity-25 md:bg-transparent z-20 md:z-auto
-              ${selectedTask ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            ${selectedTask ? 'fixed inset-0 bg-black bg-opacity-25 z-20' : ''}
+            ${showMenuButton && isSidebarOpen ? 'fixed inset-0 bg-black bg-opacity-25 z-10' : ''}
+            md:relative md:bg-transparent md:z-auto`}>
               <div
                 className="absolute top-0 right-0 h-full w-[90%] max-w-md md:w-auto md:relative transition-transform duration-300 ease-in-out"
                 style={{

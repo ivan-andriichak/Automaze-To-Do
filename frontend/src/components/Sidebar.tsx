@@ -34,13 +34,6 @@ export default function Sidebar({
 }: SidebarProps) {
   return (
     <>
-      {/* Затемнення фону на мобільних пристроях */}
-      <div
-        className={`fixed inset-0 bg-black bg-opacity-25 z-30 transition-opacity lg:hidden ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={onClose}
-      />
       <aside
         className={`bg-gray-50 flex flex-col border-r border-gray-200 transition-transform duration-300 ease-in-out z-40
         fixed top-0 left-0 h-full w-72 shrink-0
