@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Task } from '@/types/task';
+import CloseButton from './CloseButton';
 
 interface EditTaskModalProps {
   task: Task;
@@ -68,7 +69,8 @@ export default function EditTaskModal({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md flex flex-col h-full p-4 border border-gray-200">
+    <div className="bg-white rounded-lg shadow-md flex flex-col h-full p-4 border border-gray-200 relative">
+      <CloseButton onClick={onClose} />
       <div className="flex items-start p-2 rounded-lg bg-gray-50 mb-4">
         <label
           className="relative cursor-pointer h-6 w-6 flex items-center mr-3 mt-1"
@@ -76,6 +78,7 @@ export default function EditTaskModal({
           <input
             type="checkbox"
             checked={task.done}
+            disabled={isTitleEmpty}
             onChange={() => onSave(task.id, { done: !task.done })}
             className="peer absolute opacity-0 h-12 w-12 cursor-pointer"
           />
@@ -97,15 +100,13 @@ export default function EditTaskModal({
           </span>
         </label>
         <textarea
-          className={`w-full text-lg font-semibold bg-transparent resize-none focus:ring-0 p-0 border ${
-            isTitleEmpty ? 'border-red-400' : 'border-transparent'
-          } ${task.done ? 'line-through text-gray-500' : ''} ${
-            isTitleEmpty ? 'placeholder-red-400' : ''
-          }`}
           value={editTitle}
           onChange={e => setEditTitle(e.target.value)}
           placeholder={isTitleEmpty ? 'Title cannot be empty' : ''}
           rows={1}
+          className={`w-full text-lg font-semibold bg-transparent resize-none outline-none border rounded-lg p-2 transition
+  ${isTitleEmpty ? 'border-red-500' : 'border-gray-300'} 
+  focus:border-blue-500`}
         />
       </div>
 
