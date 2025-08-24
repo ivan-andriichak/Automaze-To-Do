@@ -16,8 +16,8 @@ export default function TaskFilter({
   setSort,
 }: TaskFilterProps) {
   return (
-    <div className="p-6 border-b border-gray-200 dark:border-gray-300 flex space-x-4 items-center">
-      <span className="relative flex-1">
+    <div className="flex flex-col space-y-4">
+      <span className="relative w-full">
         <input
           type="text"
           value={search}
@@ -39,7 +39,7 @@ export default function TaskFilter({
       <select
         value={status}
         onChange={e => setStatus(e.target.value)}
-        className="p-2 border rounded">
+        className="p-2 border rounded w-full">
         <option value="all">All</option>
         <option value="done">Done</option>
         <option value="undone">Undone</option>
@@ -47,9 +47,9 @@ export default function TaskFilter({
       <select
         value={sort}
         onChange={e => setSort(e.target.value as 'asc' | 'desc')}
-        className="p-2 border rounded">
-        <option value="asc">Priority Asc</option>
+        className="p-2 border rounded w-full">
         <option value="desc">Priority Desc</option>
+        <option value="asc">Priority Asc</option>
       </select>
     </div>
   );

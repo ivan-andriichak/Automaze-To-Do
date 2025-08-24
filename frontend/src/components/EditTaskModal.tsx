@@ -19,6 +19,8 @@ export default function EditTaskModal({
     task.description || '',
   );
 
+  const isTitleEmpty = !editTitle.trim();
+
   useEffect(() => {
     if (task) {
       setEditTitle(task.title);
@@ -27,6 +29,10 @@ export default function EditTaskModal({
   }, [task]);
 
   const handleSave = async () => {
+    if (isTitleEmpty) {
+      return;
+    }
+
     try {
       await onSave(task.id, {
         title: editTitle.trim(),
@@ -54,9 +60,9 @@ export default function EditTaskModal({
         <label className="block mb-2">
           <span className="block mb-1 font-light">Title:</span>
           <input
-            className="w-full border rounded p-2 mt-1
+            className={`w-full border rounded p-2 mt-1
              focus:border-blue-300 focus:outline-none transition-colors
-             font-light"
+             font-light ${isTitleEmpty ? 'border-red-400' : ''}`}
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
           />
@@ -73,7 +79,8 @@ export default function EditTaskModal({
         <div className="flex justify-end space-x-2 mt-4">
           <button
             onClick={handleSave}
-            className="px-2 py-1 bg-green-600 text-white rounded">
+            disabled={isTitleEmpty}
+            className="px-2 py-1 bg-green-600 text-white rounded disabled:bg-gray-400 disabled:cursor-not-allowed">
             Save
           </button>
           <button

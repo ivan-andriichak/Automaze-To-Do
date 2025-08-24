@@ -3,9 +3,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import TaskForm from '@/components/TaskForm';
 import TaskList from '@/components/TaskList';
-import TaskFilter from '@/components/TaskFilter';
 import { Task, TaskListResponse } from '@/types/task';
 import { createTask, deleteTask, getTasks, updateTask } from '@/lib/api';
+import EditTaskModal from '@/components/EditTaskModal';
+import Sidebar from '@/components/Sidebar';
 
 export default function Home() {
   const [showCompleted, setShowCompleted] = useState(false);
@@ -15,6 +16,12 @@ export default function Home() {
   const [sort, setSort] = useState<'asc' | 'desc'>('desc');
   const [limit] = useState(30);
   const [hasSearched, setHasSearched] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  const username = 'ivan-andriichak';
+
+  const handleOpenModal = (task: Task) => setSelectedTask(task);
+  const handleCloseModal = () => setSelectedTask(null);
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -25,9 +32,7 @@ export default function Home() {
         limit,
       });
       setTasks(data.tasks);
-      if (search) {
-        setHasSearched(true);
-      }
+      if (search) setHasSearched(true);
     } catch (error) {
       console.error('Failed to fetch tasks:', error);
     }
@@ -54,6 +59,9 @@ export default function Home() {
     try {
       await updateTask(id, updates);
       await fetchTasks();
+      if (selectedTask && selectedTask.id === id) {
+        setSelectedTask({ ...selectedTask, ...updates });
+      }
     } catch (error) {
       console.error('Failed to update task:', { id, updates, error });
     }
@@ -62,6 +70,7 @@ export default function Home() {
   const handleDeleteTask = async (id: string) => {
     try {
       await deleteTask(id);
+      handleCloseModal();
       await fetchTasks();
     } catch (error) {
       console.error('Failed to delete task:', error);
@@ -71,79 +80,86 @@ export default function Home() {
   const noResults = hasSearched && tasks.length === 0;
 
   return (
-    <main className="flex min-h-screen flex-col p-1 sm:p-8 md:p-4 lg:p-6 bg-transparent max-w-7xl mx-auto">
-      <div className="text-gray-500">
-        {new Date().toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-        })}
-      </div>
-      <header className="mb-5 flex items-center">
-        <div>
-          <p className="text-2xl font-light">My To-Do</p>
-        </div>
-        <TaskFilter
-          search={search}
-          setSearch={setSearch}
-          status={status}
-          setStatus={setStatus}
-          sort={sort}
-          setSort={setSort}
-        />
-      </header>
+    <div className="flex h-screen bg-white">
+      <Sidebar
+        username={username}
+        search={search}
+        setSearch={setSearch}
+        status={status}
+        setStatus={setStatus}
+        sort={sort}
+        setSort={setSort}
+      />
 
-      {noResults ? (
-        <div className="w-full max-w-full text-center text-gray-500 mt-10">
-          <p>No tasks found for your search.</p>
-        </div>
-      ) : (
-        <>
-          <div
-            className="w-full max-w-full overflow-y-auto"
-            style={{
-              maxHeight: '70vh',
-              minHeight: '200px',
-              scrollbarWidth: 'thin',
-              scrollbarColor: 'inherit',
-              overscrollBehavior: 'contain',
-            }}>
-            <div className="bg-transparent dark:bg-transparent rounded-lg shadow-md">
+      <main className="flex-1 flex flex-col p-6 overflow-hidden">
+        <header className="mb-5">
+          <p className="text-2xl font-bold text-gray-800">My Day</p>
+          <p className="text-gray-500 text-sm">
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </p>
+        </header>
+
+        {noResults ? (
+          <div className="flex-1 flex items-center justify-center text-gray-500">
+            <p>No tasks found for your search.</p>
+          </div>
+        ) : (
+          <div className="flex flex-1 overflow-hidden">
+            <div
+              className={`flex-1 transition-all duration-300 overflow-y-auto pr-4`}>
+              {/* Списки завдань */}
               <TaskList
                 tasks={tasks.filter(task => !task.done)}
                 onUpdate={handleUpdateTask}
                 onDelete={handleDeleteTask}
+                onEdit={handleOpenModal}
+                selectedTaskId={selectedTask?.id}
               />
-            </div>
-            {tasks.filter(task => task.done).length > 0 && (
-              <button
-                className="mt-1.5 px-4 py-2  bg-gray-100 rounded hover:bg-white"
-                onClick={() => setShowCompleted(v => !v)}>
-                Completed {tasks.filter(task => task.done).length}
-                <span
-                  className={`ml-2 transition-transform inline-block ${showCompleted ? 'rotate-90' : ''}`}
-                  style={{ cursor: 'pointer' }}>
-                  ⮞
-                </span>
-              </button>
-            )}
-            {showCompleted && (
-              <div className="w-full max-w-full overflow-auto mt-2">
-                <div className="bg-transparent dark:bg-transparent rounded-lg shadow-md">
+              {tasks.filter(task => task.done).length > 0 && (
+                <button
+                  className="mt-4 px-4 py-2 bg-gray-100 rounded hover:bg-white w-full text-left"
+                  onClick={() => setShowCompleted(v => !v)}>
+                  Completed {tasks.filter(task => task.done).length}
+                  <span
+                    className={`ml-2 transition-transform inline-block ${showCompleted ? 'rotate-90' : ''}`}>
+                    ⮞
+                  </span>
+                </button>
+              )}
+              {showCompleted && (
+                <div className="mt-2">
                   <TaskList
                     tasks={tasks.filter(task => task.done)}
                     onUpdate={handleUpdateTask}
                     onDelete={handleDeleteTask}
+                    onEdit={handleOpenModal}
+                    selectedTaskId={selectedTask?.id}
                   />
                 </div>
+              )}
+            </div>
+
+            {selectedTask && (
+              <div className="w-1/3 ml-4 transition-all duration-300">
+                <EditTaskModal
+                  task={selectedTask}
+                  onClose={handleCloseModal}
+                  onSave={handleUpdateTask}
+                  onDelete={handleDeleteTask}
+                />
               </div>
             )}
           </div>
-          <div className="w-full  fixed bottom-10 left-0 flex justify-center bg-transparent z-10">
-            <TaskForm onAdd={handleAddTask} />
-          </div>
-        </>
-      )}
-    </main>
+        )}
+
+        <div className="mt-auto pt-6">
+          <TaskForm onAdd={handleAddTask} />
+        </div>
+      </main>
+    </div>
   );
 }
