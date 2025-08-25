@@ -9,6 +9,8 @@ import { AppConfig } from './config/config.type';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.setGlobalPrefix('api');
+
   const configService = app.get(ConfigService);
 
   const appConfig = configService.get<AppConfig>('app');
