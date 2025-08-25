@@ -1,4 +1,4 @@
-import TaskManager from '../components/TaskManager';
+import TaskManager from '@/components/TaskManager';
 import { Suspense } from 'react';
 
 export default async function Home({
