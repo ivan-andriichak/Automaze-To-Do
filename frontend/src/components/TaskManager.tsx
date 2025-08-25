@@ -51,9 +51,15 @@ export default function TaskManager({
     setBackground(newBgClass);
     localStorage.setItem('app-background', newBgClass);
   };
-
-  const handleOpenModal = (task: Task) => setSelectedTask(task);
   const handleCloseModal = () => setSelectedTask(null);
+
+  const handleTaskSelect = (task: Task) => {
+    if (selectedTask && selectedTask.id === task.id) {
+      handleCloseModal();
+    } else {
+      setSelectedTask(task);
+    }
+  };
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
   const closeSidebar = () => setIsSidebarOpen(false);
 
@@ -83,7 +89,6 @@ export default function TaskManager({
     router.replace(`${pathname}?${params.toString()}`);
   }, [search, status, sort, pathname, router]);
 
-  // 2. Оновлюємо функцію fetchTasks
   const fetchTasks = useCallback(async () => {
     try {
       const data: TaskListResponse = await getTasks({
@@ -180,7 +185,7 @@ export default function TaskManager({
               tasks={tasks.filter(t => !t.done)}
               onUpdate={handleUpdateTask}
               onDelete={handleDeleteTask}
-              onEdit={handleOpenModal}
+              onEdit={handleTaskSelect}
               selectedTaskId={selectedTask?.id}
             />
             {tasks.some(t => t.done) && (
@@ -200,7 +205,7 @@ export default function TaskManager({
                       tasks={tasks.filter(t => t.done)}
                       onUpdate={handleUpdateTask}
                       onDelete={handleDeleteTask}
-                      onEdit={handleOpenModal}
+                      onEdit={handleTaskSelect}
                       selectedTaskId={selectedTask?.id}
                     />
                   </div>
