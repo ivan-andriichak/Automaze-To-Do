@@ -1,4 +1,6 @@
 import { Task } from '@/types/task';
+import CheckIcon from './icons/CheckIcon';
+import DocumentIcon from './icons/DocumentIcon';
 
 interface TaskListProps {
   tasks: Task[];
@@ -36,18 +38,7 @@ export default function TaskList({
                 />
                 <span className="block h-4 w-4 border rounded-full bg-white peer-checked:bg-white peer-checked:border-gray-600 transition-colors">
                   {task.done && (
-                    <svg
-                      className="absolute left-0 top-0 h-4 w-4 text-black"
-                      viewBox="0 0 16 16"
-                      fill="none">
-                      <path
-                        d="M4 8l3 3 5-5"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <CheckIcon className="absolute left-0 top-0 h-4 w-4 text-black" />
                   )}
                 </span>
               </label>
@@ -59,18 +50,7 @@ export default function TaskList({
               {task.description && (
                 <p className="text-sm text-gray-400 flex items-center">
                   <span style={{ marginRight: '10px' }}>
-                    <svg
-                      className="w-4 h-4 mr-1"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <path d="M14 2v6h6" />
-                      <path d="M16 13H8" />
-                      <path d="M16 17H8" />
-                      <path d="M10 9H8" />
-                    </svg>
+                    <DocumentIcon className="w-4 h-4 mr-1" />
                   </span>
                   {task.description}
                 </p>
