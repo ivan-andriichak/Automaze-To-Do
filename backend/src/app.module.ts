@@ -12,7 +12,8 @@ import { TasksModule } from './modules/tasks/tasks.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: 'environments/local.env',
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
+      envFilePath: process.env.NODE_ENV !== 'production' ? 'environments/local.env' : '',
       load: [configuration],
       isGlobal: true,
     }),
