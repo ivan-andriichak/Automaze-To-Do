@@ -11,6 +11,7 @@ import { Config, PostgresConfig } from '../../config/config.type';
     TypeOrmModule.forRootAsync({
       useFactory: async (configService: ConfigService<Config>) => {
         const config = configService.get<PostgresConfig>('postgres');
+        const isProduction = process.env.NODE_ENV === 'production';
 
         return {
           type: 'postgres',
@@ -19,9 +20,16 @@ import { Config, PostgresConfig } from '../../config/config.type';
           username: config?.user,
           password: config?.password,
           database: config?.dbName,
-          entities: [path.join(process.cwd(), 'dist', 'src', 'database', 'entities', '*.entity.js')],
-          migrations: [path.join(process.cwd(), 'dist', 'src', 'database', 'migrations', '*.js')],
-
+          entities: [
+            isProduction
+              ? path.join(__dirname, '..', '..', 'database', 'entities', '*.entity.js')
+              : path.join(process.cwd(), 'src', 'database', 'entities', '*.entity.ts'),
+          ],
+          migrations: [
+            isProduction
+              ? path.join(__dirname, '..', '..', 'database', 'migrations', '*.js')
+              : path.join(process.cwd(), 'src', 'database', 'migrations', '*.ts'),
+          ],
           migrationsRun: true,
           synchronize: false,
           logging: true,
