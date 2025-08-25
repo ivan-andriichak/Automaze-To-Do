@@ -11,12 +11,12 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  app.use((req: { path: string }, res: { redirect: (arg0: string) => any }, next: () => void) => {
-    if (req.path === '/') {
-      return res.redirect('/api');
-    }
-    next();
-  });
+  // app.use((req: { path: string }, res: { redirect: (arg0: string) => any }, next: () => void) => {
+  //   if (req.path === '/') {
+  //     return res.redirect('/api');
+  //   }
+  //   next();
+  // });
 
   const configService = app.get(ConfigService);
 
@@ -57,13 +57,6 @@ async function bootstrap() {
       res.send(document);
     },
   );
-
-  app.enableCors({
-    origin: '*',
-    credentials: true,
-    allowedHeaders: ['Authorization', 'Content-Type'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  });
 
   app.useGlobalPipes(
     new ValidationPipe({
