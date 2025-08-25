@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import TaskForm from '@/components/TaskForm';
 import TaskList from '@/components/TaskList';
 import { Task, TaskListResponse } from '@/types/task';
-import { createTask, deleteTask, getTasks, updateTask } from '@/lib/api';
+import { createTask, deleteTask, getTasks, updateTask } from '@/lib/taskApi';
 import EditTaskModal from '@/components/EditTaskModal';
 import Sidebar from '@/components/Sidebar';
 import MenuButton from './MenuButton';

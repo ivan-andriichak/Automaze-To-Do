@@ -4,7 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
-import { AppConfig, PostgresConfig } from './config/config.type';
+import { AppConfig } from './config/config.type';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,13 +12,12 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   const appConfig = configService.get<AppConfig>('app');
-  const dbConfig = configService.get<PostgresConfig>('postgres');
 
-  Logger.log(`Database Host: ${dbConfig?.host}`, 'DB_CONFIG');
-  Logger.log(`Database Port: ${dbConfig?.port}`, 'DB_CONFIG');
-  Logger.log(`Database User: ${dbConfig?.user}`, 'DB_CONFIG');
-  Logger.log(`Database Name: ${dbConfig?.dbName}`, 'DB_CONFIG');
-  Logger.log(`NODE_ENV: ${process.env.NODE_ENV}`, 'DB_CONFIG');
+  app.enableCors({
+    origin: ['http://localhost:3000', 'https://automaze-to-do.vercel.app'],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
 
   const config = new DocumentBuilder()
     .setTitle('Automaze-To-Do')

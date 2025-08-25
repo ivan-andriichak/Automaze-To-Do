@@ -6,7 +6,7 @@ import {
   UpdateTaskDto,
 } from '@/types/task';
 
-const API_BASE_URL = 'http://localhost:5000';
+import API_BASE_URL from '@/lib/apiConfig';
 
 export async function getTasks(
   query: TaskListQueryDto = {},
