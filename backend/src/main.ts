@@ -11,6 +11,13 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  app.use((req: { path: string }, res: { redirect: (arg0: string) => any }, next: () => void) => {
+    if (req.path === '/') {
+      return res.redirect('/api');
+    }
+    next();
+  });
+
   const configService = app.get(ConfigService);
 
   const appConfig = configService.get<AppConfig>('app');
