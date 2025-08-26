@@ -1,27 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import DotsHorizontalIcon from '@/components/icons/DotsHorizontalIcon';
+import { backgroundOptions } from './constants/backgroundOption';
 
-interface BackgroundOption {
+export interface BackgroundOption {
   name: string;
   value: string;
 }
-
-const backgroundOptions: BackgroundOption[] = [
-  { name: 'Default White', value: 'bg-white' },
-  { name: 'Light Gray', value: 'bg-gray-100' },
-  { name: 'Soft Blue', value: 'bg-blue-50' },
-  { name: 'Mint Green', value: 'bg-green-50' },
-  {
-    name: 'Pastel Gradient',
-    value: 'bg-gradient-to-br from-purple-100 to-blue-200',
-  },
-  {
-    name: 'Sunset Gradient',
-    value: 'bg-gradient-to-br from-yellow-100 via-red-100 to-pink-200',
-  },
-];
 
 interface BackgroundSwitcherProps {
   onBackgroundChange: (backgroundClass: string) => void;
@@ -31,6 +17,20 @@ export default function BackgroundSwitcher({
   onBackgroundChange,
 }: BackgroundSwitcherProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
 
   const handleSelect = (backgroundClass: string) => {
     onBackgroundChange(backgroundClass);
@@ -38,18 +38,16 @@ export default function BackgroundSwitcher({
   };
 
   return (
-    <div className="relative">
+    <div className="relative" tabIndex={-1} ref={menuRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen(prev => !prev)}
         className="p-2 rounded-full hover:bg-gray-200 transition-colors"
         aria-label="Change background">
         <DotsHorizontalIcon className="h-6 w-6 text-gray-600" />
       </button>
 
       {isOpen && (
-        <div
-          className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
-          onMouseLeave={() => setIsOpen(false)}>
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
           <ul className="p-2">
             {backgroundOptions.map(option => (
               <li key={option.name}>
