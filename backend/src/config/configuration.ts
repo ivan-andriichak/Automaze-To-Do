@@ -9,7 +9,7 @@ export default (): Config => ({
     appUrl: process.env.APP_URL || 'https://automaze-to-do.vercel.app',
   },
   postgres: {
-    port: Number(process.env.POSTGRES_PORT || 5433),
+    port: Number(process.env.POSTGRES_PORT || 5432),
     host: process.env.POSTGRES_HOST || 'localhost',
     user: process.env.POSTGRES_USER || 'user',
     password: process.env.POSTGRES_PASSWORD || 'userpass',
