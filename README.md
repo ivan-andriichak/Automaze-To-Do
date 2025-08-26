@@ -10,6 +10,12 @@ A modern and feature-rich To-Do manager built as a full-stack application. The f
 
 ---
 
+> **Live Demo:**  
+> The frontend of Automaze To-Do App is deployed and available at  
+> [https://automaze-to-do.vercel.app/](https://automaze-to-do.vercel.app/)
+
+---
+
 ### 🎥 Demo
 
 *(A screenshot or a short GIF of the application in action would be a great addition here)*
@@ -90,7 +96,7 @@ Before you begin, ensure you have the following installed on your system:
     ```
 3.  Verify the connection details in the `backend/environments/local.env` file. The default configuration is:
     - **Host:** `localhost`
-    - **Port:** `5433`
+    - **Port:** `5432`
     - **User:** `postgres`
     - **Password:** `userpass`
     - **Database Name:** `to-do`
@@ -177,4 +183,3 @@ Once the backend server is running, interactive API documentation (powered by Sw
 ## 👨‍💻 Author
 
 - **ivan-andriichak**
-
