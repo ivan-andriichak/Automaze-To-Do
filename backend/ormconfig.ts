@@ -1,7 +1,6 @@
 import * as path from 'node:path';
 import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
-
 import getter from './src/config/configuration';
 
 dotenv.config({ path: './environments/local.env' });
@@ -37,9 +36,10 @@ export default new DataSource({
   username: isProduction ? undefined : databaseConfig.user,
   password: isProduction ? undefined : databaseConfig.password,
   database: isProduction ? undefined : databaseConfig.dbName,
-  entities: [path.join(process.cwd(), 'src', 'database', 'entities', '*.entity.ts')],
-  migrations: [path.join(process.cwd(), 'src', 'database', 'migrations', '*.ts')],
+  entities: [path.join(__dirname, 'src', 'database', 'entities', '*.entity{.ts,.js}')],
+  migrations: [path.join(__dirname, 'src', 'database', 'migrations', '*.{ts,js}')],
   synchronize: false,
   dropSchema: false,
   logging: true,
+  migrationsRun: isProduction,
 });
