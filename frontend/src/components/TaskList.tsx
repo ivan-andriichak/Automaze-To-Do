@@ -36,7 +36,7 @@ export default function TaskList({
                   onChange={() => onUpdate(task.id, { done: !task.done })}
                   className="peer absolute opacity-0 h-12 w-12 cursor-pointer"
                 />
-                <span className="block h-4 w-4 border rounded-full bg-white peer-checked:bg-white peer-checked:border-gray-600 transition-colors">
+                <span className="relative flex justify-center items-center h-4 w-4 border rounded-full bg-white peer-checked:bg-white peer-checked:border-gray-600 transition-colors">
                   {task.done && (
                     <CheckIcon className="absolute left-0 top-0 h-4 w-4 text-black" />
                   )}
