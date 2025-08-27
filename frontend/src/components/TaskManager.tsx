@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {usePathname, useRouter} from 'next/navigation';
 import TaskForm from '@/components/TaskForm';
 import TaskList from '@/components/TaskList';
-import { Task, TaskListResponse } from '@/types/task';
-import { createTask, deleteTask, getTasks, updateTask } from '@/lib/taskApi';
+import {Task, TaskListResponse} from '@/interfaces/task';
+import {createTask, deleteTask, getTasks, updateTask} from '@/api/taskApi';
 import EditTaskModal from '@/components/EditTaskModal';
 import Sidebar from '@/components/Sidebar';
 import MenuButton from './MenuButton';
@@ -181,13 +181,19 @@ export default function TaskManager({
 
         <div className="flex flex-1 overflow-hidden">
           <div className="flex-1 h-full overflow-y-auto pr-4 min-w-0">
-            <TaskList
-              tasks={tasks.filter(t => !t.done)}
-              onUpdate={handleUpdateTask}
-              onDelete={handleDeleteTask}
-              onEdit={handleTaskSelect}
-              selectedTaskId={selectedTask?.id}
-            />
+            {tasks.length === 0 ? (
+              <div className="flex  items-center justify-center h-32 text-gray-500">
+                Loading tasks...
+              </div>
+            ) : (
+              <TaskList
+                tasks={tasks.filter(t => !t.done)}
+                onUpdate={handleUpdateTask}
+                onDelete={handleDeleteTask}
+                onEdit={handleTaskSelect}
+                selectedTaskId={selectedTask?.id}
+              />
+            )}
             {tasks.some(t => t.done) && (
               <>
                 <button

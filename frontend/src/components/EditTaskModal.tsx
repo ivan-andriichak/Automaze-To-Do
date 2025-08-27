@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Task } from '@/types/task';
 import CloseButton from './CloseButton';
 import CheckIcon from '@/components/icons/CheckIcon';
 import TrashIcon from '@/components/icons/TrashIcon';
+import { Task } from '@/interfaces/task';
 
 interface EditTaskModalProps {
   task: Task | null;

@@ -1,12 +1,6 @@
-import {
-  CreateTaskDto,
-  Task,
-  TaskListQueryDto,
-  TaskListResponse,
-  UpdateTaskDto,
-} from '@/types/task';
+import {CreateTaskDto, Task, TaskListQueryDto, TaskListResponse, UpdateTaskDto,} from '@/interfaces/task';
 
-import API_BASE_URL from '@/lib/apiConfig';
+import API_BASE_URL from '@/api/apiConfig';
 
 export async function getTasks(
   query: TaskListQueryDto = {},

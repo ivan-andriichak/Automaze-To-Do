@@ -1,4 +1,4 @@
-import { Task } from '@/types/task';
+import { Task } from '@/interfaces/task';
 import CheckIcon from './icons/CheckIcon';
 import DocumentIcon from './icons/DocumentIcon';
 
