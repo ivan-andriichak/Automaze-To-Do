@@ -26,9 +26,13 @@ export default function TaskManager({
   const pathname = usePathname();
   const isInitialMount = useRef(true);
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(
-    () => window.innerWidth >= 1024,
-  );
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  useEffect(() => {
+    const SIDEBAR_BREAKPOINT = 1024;
+    if (window.innerWidth >= SIDEBAR_BREAKPOINT) {
+      setIsSidebarOpen(true);
+    }
+  }, []);
   const [showMenuButton, setShowMenuButton] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
