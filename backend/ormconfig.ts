@@ -42,4 +42,12 @@ export default new DataSource({
   dropSchema: false,
   logging: true,
   migrationsRun: isProduction,
+  ...(isProduction && {
+    ssl: true,
+    extra: {
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    },
+  }),
 });
