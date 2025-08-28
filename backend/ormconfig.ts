@@ -43,11 +43,8 @@ export default new DataSource({
   logging: true,
   migrationsRun: isProduction,
   ...(isProduction && {
-    ssl: true,
-    extra: {
-      ssl: {
-        rejectUnauthorized: false,
-      },
-    },
+    ssl: {
+      rejectUnauthorized: false
+    }
   }),
 });
