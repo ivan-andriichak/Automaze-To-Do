@@ -9,12 +9,14 @@ const isProduction = process.env.NODE_ENV === 'production';
 const databaseConfig = getter().postgres;
 
 console.log('ormconfig.ts Config:', {
-  host: databaseConfig.host,
-  port: databaseConfig.port,
-  username: databaseConfig.user,
-  password: databaseConfig.password,
-  database: databaseConfig.dbName,
+  host: isProduction ? 'Render DB' : databaseConfig.host,
+  port: isProduction ? undefined : databaseConfig.port,
+  username: isProduction ? undefined : databaseConfig.user,
+  password: isProduction ? undefined : databaseConfig.password,
+  database: isProduction ? undefined : databaseConfig.dbName,
   POSTGRES_URL: process.env.POSTGRES_URL,
+  NODE_ENV: process.env.NODE_ENV,
+  ssl: isProduction ? { rejectUnauthorized: false } : undefined,
 });
 
 if (isProduction && !process.env.POSTGRES_URL) {
@@ -37,14 +39,16 @@ export default new DataSource({
   password: isProduction ? undefined : databaseConfig.password,
   database: isProduction ? undefined : databaseConfig.dbName,
   entities: [path.join(__dirname, 'src', 'database', 'entities', '*.entity{.ts,.js}')],
-  migrations: [path.join(__dirname, 'src', 'database', 'migrations', '*.{ts,js}')],
+  migrations: [path.join(__dirname, 'src', 'database', 'migrations', '*.{ts,.js}')],
   synchronize: false,
   dropSchema: false,
   logging: true,
   migrationsRun: isProduction,
-  ...(isProduction && {
-    ssl: {
-      rejectUnauthorized: false,
-    },
-  }),
+  extra: isProduction
+    ? {
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    }
+    : {},
 });
