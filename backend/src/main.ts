@@ -23,7 +23,7 @@ async function bootstrap() {
   const appConfig = configService.get<AppConfig>('app');
 
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://automaze-to-do.vercel.app'],
+    origin: ['http://localhost:3000', 'https://automaze-to-do.vercel.app', 'https://automaze-to-do.onrender.com'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
