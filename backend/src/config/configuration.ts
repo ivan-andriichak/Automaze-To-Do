@@ -4,7 +4,7 @@ import { Config } from './config.type';
 
 export default (): Config => ({
   app: {
-    port: Number(process.env.APP_PORT || process.env.PORT || 10000),
+    port: Number(process.env.APP_PORT || process.env.PORT || 5000),
     host: process.env.APP_HOST || '0.0.0.0',
     appUrl: process.env.APP_URL || 'https://automaze-to-do.vercel.app',
   },

@@ -2,11 +2,29 @@ import {CreateTaskDto, Task, TaskListQueryDto, TaskListResponse, UpdateTaskDto,}
 
 import API_BASE_URL from '@/api/apiConfig';
 
+function getAuthHeaders(): HeadersInit {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 export async function getTasks(
   query: TaskListQueryDto = {},
 ): Promise<TaskListResponse> {
   const params = new URLSearchParams(query as never).toString();
-  const response = await fetch(`${API_BASE_URL}/tasks?${params}`);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const response = await fetch(`${API_BASE_URL}/tasks?${params}`, {
+    headers,
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch tasks');
   }
@@ -16,7 +34,7 @@ export async function getTasks(
 export async function createTask(data: CreateTaskDto): Promise<Task> {
   const response = await fetch(`${API_BASE_URL}/tasks`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!response.ok) {
@@ -31,7 +49,7 @@ export async function updateTask(
 ): Promise<Task> {
   const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!response.ok) {
@@ -41,8 +59,14 @@ export async function updateTask(
 }
 
 export async function deleteTask(id: string): Promise<void> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
     method: 'DELETE',
+    headers,
   });
   if (!response.ok) {
     throw new Error('Failed to delete task');
