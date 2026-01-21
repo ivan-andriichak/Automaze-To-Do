@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -22,10 +34,7 @@ export class TasksController {
     description: 'A list of tasks with pagination information.',
     type: TaskListResDto,
   })
-  public async getAllTasks(
-    @Query() query: TaskListReqDto,
-    @CurrentUser() user: any,
-  ): Promise<TaskListResDto> {
+  public async getAllTasks(@Query() query: TaskListReqDto, @CurrentUser() user: any): Promise<TaskListResDto> {
     return await this.tasksService.getAllTasks(query, user.userId || user.sub);
   }
 
@@ -35,10 +44,7 @@ export class TasksController {
     description: 'Data for creating a new task.',
     type: CreateTaskReqDto,
   })
-  createTask(
-    @Body() createTaskDto: CreateTaskReqDto,
-    @CurrentUser() user: any,
-  ): Promise<TaskResDto> {
+  createTask(@Body() createTaskDto: CreateTaskReqDto, @CurrentUser() user: any): Promise<TaskResDto> {
     return this.tasksService.createTask(createTaskDto, user.userId || user.sub);
   }
 
@@ -64,10 +70,7 @@ export class TasksController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiResponse({ status: HttpStatus.NO_CONTENT, description: 'The task has been successfully deleted.' })
   @ApiParam({ name: 'id', description: 'The ID of the task to delete.', type: 'string' })
-  async deleteTask(
-    @Param('id') id: string,
-    @CurrentUser() user: any,
-  ): Promise<void> {
+  async deleteTask(@Param('id') id: string, @CurrentUser() user: any): Promise<void> {
     await this.tasksService.deleteTask(id, user.userId || user.sub);
   }
 }
