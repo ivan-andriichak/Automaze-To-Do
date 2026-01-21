@@ -10,7 +10,7 @@ export class TaskRepository extends Repository<TaskEntity> {
     super(TaskEntity, dataSource.createEntityManager());
   }
 
-  public async getAllTasks(query: TaskListReqDto): Promise<[TaskEntity[], number]> {
+  public async getAllTasks(query: TaskListReqDto, userId: string): Promise<[TaskEntity[], number]> {
     const { search, status, sort } = query;
 
     const page = Number(query.page) || 1;
@@ -20,6 +20,9 @@ export class TaskRepository extends Repository<TaskEntity> {
     const queryBuilder = this.createQueryBuilder('task');
 
     queryBuilder.select('task');
+
+    // Filter by userId
+    queryBuilder.andWhere('task.userId = :userId', { userId });
 
     if (search) {
       queryBuilder.andWhere('task.title ILIKE :search', { search: `%${search}%` });

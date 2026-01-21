@@ -1,6 +1,8 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiBody, ApiOkResponse, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateTaskReqDto } from './dto/req/create-task.req.dto';
 import { TaskListReqDto } from './dto/req/task-list.req.dto';
 import { UpdateTaskReqDto } from './dto/req/update-task.req.dto';
@@ -9,6 +11,8 @@ import { TaskListResDto } from './dto/res/task-list.res.dto';
 import { TasksService } from './services/tasks.service';
 
 @ApiTags('Tasks')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('tasks')
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
@@ -18,8 +22,11 @@ export class TasksController {
     description: 'A list of tasks with pagination information.',
     type: TaskListResDto,
   })
-  public async getAllTasks(@Query() query: TaskListReqDto): Promise<TaskListResDto> {
-    return await this.tasksService.getAllTasks(query);
+  public async getAllTasks(
+    @Query() query: TaskListReqDto,
+    @CurrentUser() user: any,
+  ): Promise<TaskListResDto> {
+    return await this.tasksService.getAllTasks(query, user.userId || user.sub);
   }
 
   @Post()
@@ -28,8 +35,11 @@ export class TasksController {
     description: 'Data for creating a new task.',
     type: CreateTaskReqDto,
   })
-  createTask(@Body() createTaskDto: CreateTaskReqDto): Promise<TaskResDto> {
-    return this.tasksService.createTask(createTaskDto);
+  createTask(
+    @Body() createTaskDto: CreateTaskReqDto,
+    @CurrentUser() user: any,
+  ): Promise<TaskResDto> {
+    return this.tasksService.createTask(createTaskDto, user.userId || user.sub);
   }
 
   @Put(':id')
@@ -42,15 +52,22 @@ export class TasksController {
     description: 'Data for updating the task. All fields are optional.',
     type: UpdateTaskReqDto,
   })
-  updateTask(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskReqDto): Promise<TaskResDto> {
-    return this.tasksService.updateTask(id, updateTaskDto);
+  updateTask(
+    @Param('id') id: string,
+    @Body() updateTaskDto: UpdateTaskReqDto,
+    @CurrentUser() user: any,
+  ): Promise<TaskResDto> {
+    return this.tasksService.updateTask(id, updateTaskDto, user.userId || user.sub);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiResponse({ status: HttpStatus.NO_CONTENT, description: 'The task has been successfully deleted.' })
   @ApiParam({ name: 'id', description: 'The ID of the task to delete.', type: 'string' })
-  async deleteTask(@Param('id') id: string): Promise<void> {
-    await this.tasksService.deleteTask(id);
+  async deleteTask(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ): Promise<void> {
+    await this.tasksService.deleteTask(id, user.userId || user.sub);
   }
 }
