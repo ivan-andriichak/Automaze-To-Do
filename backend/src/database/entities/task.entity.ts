@@ -1,6 +1,7 @@
-import { Column, CreateDateColumn, Entity, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, ManyToOne, UpdateDateColumn } from 'typeorm';
 
 import { CreateUpdateModel } from './models/create-update.model';
+import { UserEntity } from './user.entity';
 
 @Entity('tasks')
 export class TaskEntity extends CreateUpdateModel {
@@ -21,4 +22,7 @@ export class TaskEntity extends CreateUpdateModel {
 
   @UpdateDateColumn()
   declare updated_at: Date;
+
+  @ManyToOne(() => UserEntity, (user) => user.tasks)
+  user: UserEntity;
 }
