@@ -13,17 +13,21 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
-export async function getTasks(
-  query: TaskListQueryDto = {},
-): Promise<TaskListResponse> {
-  const params = new URLSearchParams(query as never).toString();
+function getAuthHeadersSimple(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const headers: HeadersInit = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
+  return headers;
+}
+
+export async function getTasks(
+  query: TaskListQueryDto = {},
+): Promise<TaskListResponse> {
+  const params = new URLSearchParams(query as never).toString();
   const response = await fetch(`${API_BASE_URL}/tasks?${params}`, {
-    headers,
+    headers: getAuthHeadersSimple(),
   });
   if (!response.ok) {
     throw new Error('Failed to fetch tasks');
@@ -59,14 +63,9 @@ export async function updateTask(
 }
 
 export async function deleteTask(id: string): Promise<void> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  const headers: HeadersInit = {};
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
   const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
     method: 'DELETE',
-    headers,
+    headers: getAuthHeadersSimple(),
   });
   if (!response.ok) {
     throw new Error('Failed to delete task');

@@ -41,8 +41,10 @@ export class JwtAuthGuard implements CanActivate {
 
   private decodeToken(token: string): any {
     try {
-      // Simple base64 decode of JWT payload (without verification)
-      // In production, use a proper JWT library with signature verification
+      // SECURITY NOTE: This is a simplified implementation for demonstration purposes.
+      // In a production environment, this MUST use a proper JWT library (e.g., @nestjs/jwt)
+      // to verify the token signature against a secret key to prevent token tampering.
+      // Example: this.jwtService.verify(token, { secret: process.env.JWT_SECRET })
       const parts = token.split('.');
       if (parts.length !== 3) {
         throw new Error('Invalid token format');

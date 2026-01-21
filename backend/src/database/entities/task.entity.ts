@@ -16,7 +16,7 @@ export class TaskEntity extends CreateUpdateModel {
   @Column({ type: 'int', default: 1 })
   priority: number;
 
-  @Column({ nullable: true })
+  @Column({ nullable: false })
   userId: string;
 
   @CreateDateColumn()
